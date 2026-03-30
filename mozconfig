@@ -1,0 +1,20 @@
+# Phantom Browser — mozconfig
+# Based on Firefox ESR
+
+ac_add_options --enable-application=browser
+ac_add_options --with-branding=browser/branding/phantom
+ac_add_options --with-app-name=phantom
+ac_add_options --with-app-basename=Phantom
+ac_add_options --disable-crashreporter
+ac_add_options --disable-updater
+ac_add_options --disable-tests
+ac_add_options --disable-debug
+ac_add_options --enable-optimize
+ac_add_options --enable-release
+ac_add_options --enable-rust-simd
+ac_add_options --enable-lto=thin
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-phantom
+mk_add_options AUTOCLOBBER=1
+
+export MOZ_REQUIRE_SIGNING=

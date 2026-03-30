@@ -1,0 +1,14 @@
+# Build artifacts
+pkg/
+repo/
+flatpak/build-dir/
+flatpak/phantom-*.tar.xz
+flatpak/.flatpak-builder/
+
+# OS / editor
+.DS_Store
+*~
+*.swp
+*.swo
+.vscode/
+.idea/

@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Main gradient: deep violet to electric blue -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A1A8A"/>
+      <stop offset="50%" stop-color="#6C3AE0"/>
+      <stop offset="100%" stop-color="#3A8AE0"/>
+    </linearGradient>
+
+    <!-- Ghost body glow -->
+    <radialGradient id="glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#B8A0FF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#6C3AE0" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Eye glow -->
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#C0D0FF"/>
+      <stop offset="100%" stop-color="#6C7AE0"/>
+    </radialGradient>
+
+    <!-- Subtle shadow -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Inner glow for ghost -->
+    <filter id="innerGlow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+      <feOffset dx="0" dy="0"/>
+      <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feFlood flood-color="#B8A0FF" flood-opacity="0.4"/>
+      <feComposite in2="blur" operator="in"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <!-- Background: rounded square -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- Subtle background glow -->
+  <ellipse cx="256" cy="220" rx="160" ry="140" fill="url(#glow)"/>
+
+  <!-- Ghost body — stylized phantom shape -->
+  <g filter="shadow">
+    <!-- Main ghost body -->
+    <path d="
+      M 256 88
+      C 176 88, 112 148, 112 228
+      L 112 360
+      C 112 372, 120 380, 132 376
+      L 160 360
+      C 168 356, 176 360, 180 368
+      L 196 400
+      C 200 408, 212 408, 216 400
+      L 232 368
+      C 236 360, 244 356, 252 360
+      L 260 364
+      C 268 368, 276 364, 280 356
+      L 296 320
+      C 300 312, 312 312, 316 320
+      L 332 356
+      C 336 364, 344 368, 352 364
+      L 368 356
+      C 380 348, 400 356, 400 372
+      L 400 360
+      L 400 228
+      C 400 148, 336 88, 256 88
+      Z
+    " fill="#E8E0FF" opacity="0.95"/>
+
+    <!-- Ghost body overlay for depth -->
+    <path d="
+      M 256 88
+      C 176 88, 112 148, 112 228
+      L 112 360
+      C 112 372, 120 380, 132 376
+      L 160 360
+      C 168 356, 176 360, 180 368
+      L 196 400
+      C 200 408, 212 408, 216 400
+      L 232 368
+      C 236 360, 244 356, 252 360
+      L 260 364
+      C 268 368, 276 364, 280 356
+      L 296 320
+      C 300 312, 312 312, 316 320
+      L 332 356
+      C 336 364, 344 368, 352 364
+      L 368 356
+      C 380 348, 400 356, 400 372
+      L 400 360
+      L 400 228
+      C 400 148, 336 88, 256 88
+      Z
+    " fill="url(#glow)" opacity="0.5"/>
+  </g>
+
+  <!-- Left eye -->
+  <ellipse cx="208" cy="220" rx="32" ry="36" fill="#1a1a2e"/>
+  <ellipse cx="208" cy="220" rx="24" ry="28" fill="url(#eyeGlow)"/>
+  <ellipse cx="214" cy="212" rx="8" ry="10" fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- Right eye -->
+  <ellipse cx="304" cy="220" rx="32" ry="36" fill="#1a1a2e"/>
+  <ellipse cx="304" cy="220" rx="24" ry="28" fill="url(#eyeGlow)"/>
+  <ellipse cx="310" cy="212" rx="8" ry="10" fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- Subtle mouth — friendly smirk -->
+  <path d="M 224 272 Q 256 296, 288 272" fill="none" stroke="#6C3AE0" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Speed lines — phantom motion effect -->
+  <line x1="80" y1="180" x2="56" y2="180" stroke="#B8A0FF" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+  <line x1="76" y1="220" x2="40" y2="220" stroke="#B8A0FF" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+  <line x1="80" y1="260" x2="52" y2="260" stroke="#B8A0FF" stroke-width="2.5" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Shield accent — security/privacy hint -->
+  <path d="
+    M 256 128
+    L 280 140
+    L 280 160
+    C 280 176, 268 188, 256 192
+    C 244 188, 232 176, 232 160
+    L 232 140
+    Z
+  " fill="none" stroke="#B8A0FF" stroke-width="2" opacity="0.25"/>
+</svg>

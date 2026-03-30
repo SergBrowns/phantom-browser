@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.anthropic.PhantomBrowser</id>
+  <name>Phantom Browser</name>
+  <summary>Privacy-focused browser with DPI bypass and built-in VPN</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MPL-2.0</project_license>
+
+  <developer id="io.github.chapmans">
+    <name>chapmans</name>
+  </developer>
+
+  <description>
+    <p>
+      Phantom Browser is a Firefox-based browser designed for privacy and
+      censorship circumvention. It includes a built-in ad/tracker blocker,
+      Deep Packet Inspection (DPI) bypass engine, and VPN support via
+      sing-box (VLESS+REALITY).
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Built-in ad and tracker blocker (EasyList + EasyPrivacy)</li>
+      <li>DPI bypass engine with TLS record splitting and TCP fragmentation</li>
+      <li>Integrated VPN via sing-box (VLESS+REALITY protocol)</li>
+      <li>Vertical tabs, split view, workspaces</li>
+      <li>Command palette and focus mode</li>
+      <li>AI sidebar integration</li>
+      <li>DNS over HTTPS with Encrypted Client Hello (ECH)</li>
+      <li>Telemetry fully disabled</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://github.com/chapmans/phantom-browser</url>
+  <url type="bugtracker">https://github.com/chapmans/phantom-browser/issues</url>
+  <url type="vcs-browser">https://github.com/chapmans/phantom-browser</url>
+
+  <launchable type="desktop-id">io.github.anthropic.PhantomBrowser.desktop</launchable>
+
+  <provides>
+    <binary>phantom-browser</binary>
+  </provides>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#7b68ee</color>
+    <color type="primary" scheme_preference="dark">#1a1a2e</color>
+  </branding>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="151.0a1" date="2026-03-30">
+      <description>
+        <p>Initial Flatpak release based on Firefox 151.</p>
+        <ul>
+          <li>DPI bypass engine v2 with ISP pattern detection</li>
+          <li>VPN engine with sing-box integration</li>
+          <li>Vertical tabs and workspace management</li>
+          <li>Built-in ad/tracker blocker</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+</component>

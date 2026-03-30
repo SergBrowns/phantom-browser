@@ -1,0 +1,66 @@
+app-id: io.github.anthropic.PhantomBrowser
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: phantom-browser
+
+finish-args:
+  # Display
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  # GPU acceleration
+  - --device=dri
+  # Network
+  - --share=network
+  # Audio
+  - --socket=pulseaudio
+  # User directories
+  - --filesystem=xdg-download
+  - --filesystem=xdg-documents
+  # Printing
+  - --socket=cups
+  # Notifications
+  - --talk-name=org.freedesktop.Notifications
+  # Webcam & devices
+  - --device=all
+  # Portal access (screen sharing, file chooser)
+  - --talk-name=org.freedesktop.portal.Desktop
+  - --talk-name=org.freedesktop.portal.FileChooser
+  - --talk-name=org.freedesktop.portal.ScreenCast
+  # MPRIS (media keys)
+  - --own-name=org.mpris.MediaPlayer2.phantom.*
+  # Spell check
+  - --env=DICPATH=/usr/share/hunspell
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.a'
+  - '*.la'
+
+modules:
+  - name: phantom-browser
+    buildsystem: simple
+    build-commands:
+      - install -d /app/lib/phantom
+      - cp -r phantom/* /app/lib/phantom/
+      - chmod +x /app/lib/phantom/phantom
+      - install -Dm755 phantom-browser.sh /app/bin/phantom-browser
+      - install -Dm644 io.github.anthropic.PhantomBrowser.desktop /app/share/applications/io.github.anthropic.PhantomBrowser.desktop
+      - install -Dm644 io.github.anthropic.PhantomBrowser.metainfo.xml /app/share/metainfo/io.github.anthropic.PhantomBrowser.metainfo.xml
+      - |
+        for size in 16 32 48 64 128 256 512; do
+          install -Dm644 "phantom/browser/chrome/icons/default/default${size}.png" \
+            "/app/share/icons/hicolor/${size}x${size}/apps/io.github.anthropic.PhantomBrowser.png"
+        done
+    sources:
+      - type: archive
+        path: phantom-151.0a1.tar.xz
+      - type: file
+        path: phantom-browser.sh
+      - type: file
+        path: io.github.anthropic.PhantomBrowser.desktop
+      - type: file
+        path: io.github.anthropic.PhantomBrowser.metainfo.xml

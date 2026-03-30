@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Phantom Browser
+GenericName=Web Browser
+Comment=Privacy-focused browser with DPI bypass and built-in VPN
+Exec=phantom-browser %u
+Icon=io.github.anthropic.PhantomBrowser
+Terminal=false
+Type=Application
+MimeType=text/html;text/xml;application/xhtml+xml;application/vnd.mozilla.xul+xml;text/mml;x-scheme-handler/http;x-scheme-handler/https;
+Categories=Network;WebBrowser;
+Keywords=Internet;WWW;Browser;Web;Privacy;VPN;
+StartupNotify=true
+StartupWMClass=phantom-default
+X-KDE-Wayland-AppId=phantom-default

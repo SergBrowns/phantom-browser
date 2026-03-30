@@ -1,0 +1,10 @@
+--- a/browser/base/content/browser.xhtml
++++ b/browser/base/content/browser.xhtml
+@@ -58,6 +58,9 @@
+   <script type="text/javascript">
+     Services.scriptloader.loadSubScript("chrome://browser/content/browser-init.js", this);
+   </script>
++
++  <!-- Phantom Browser modules -->
++  <script type="text/javascript" src="chrome://phantom/content/phantom-loader.js"/>
+ </head>

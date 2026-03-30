@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Phantom Browser
+Comment=Phantom Browser
+Exec=/home/chapmans/mozilla-unified/obj-phantom/dist/bin/phantom %u
+Icon=phantom
+Terminal=false
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupWMClass=phantom-default
+StartupNotify=true
+X-KDE-Wayland-AppId=phantom-default

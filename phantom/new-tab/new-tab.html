@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>New Tab</title>
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg: #0c0c14;
+        --glass: rgba(255,255,255,0.04);
+        --glass-border: rgba(255,255,255,0.08);
+        --glass-hover: rgba(255,255,255,0.07);
+        --text: #e8e8f0;
+        --text-dim: rgba(255,255,255,0.35);
+        --accent: #818cf8;
+        --accent-dim: rgba(129,140,248,0.15);
+        --danger: rgba(255,80,80,0.8);
+        --radius: 16px;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "Inter", "Segoe UI", system-ui, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 32px 64px;
+        overflow-x: hidden;
+    }
+
+    /* subtle radial glow top-center */
+    body::before {
+        content: "";
+        position: fixed;
+        top: -120px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 700px;
+        height: 400px;
+        background: radial-gradient(ellipse, rgba(129,140,248,0.1) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* ── Clock ──────────────────────────────── */
+    #clock-wrap {
+        margin-top: 100px;
+        text-align: center;
+        user-select: none;
+        position: relative;
+        z-index: 1;
+    }
+
+    #clock {
+        font-size: 80px;
+        font-weight: 100;
+        letter-spacing: -4px;
+        color: rgba(255,255,255,0.92);
+        line-height: 1;
+        text-shadow: 0 0 80px rgba(129,140,248,0.25);
+        font-variant-numeric: tabular-nums;
+    }
+
+    #date {
+        margin-top: 10px;
+        font-size: 14px;
+        color: var(--text-dim);
+        letter-spacing: 0.04em;
+        font-weight: 400;
+    }
+
+    /* ── Search ─────────────────────────────── */
+    #search-wrap {
+        margin-top: 44px;
+        width: 100%;
+        max-width: 520px;
+        position: relative;
+        z-index: 1;
+    }
+
+    #search {
+        width: 100%;
+        padding: 15px 20px 15px 48px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 15px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        backdrop-filter: blur(12px);
+    }
+
+    #search:focus {
+        border-color: rgba(129,140,248,0.5);
+        box-shadow: 0 0 0 3px rgba(129,140,248,0.1), 0 8px 32px rgba(0,0,0,0.3);
+        background: rgba(255,255,255,0.06);
+    }
+
+    #search::placeholder { color: var(--text-dim); }
+
+    #search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-dim);
+        font-size: 17px;
+        pointer-events: none;
+        line-height: 1;
+    }
+
+    /* ── Sites ──────────────────────────────── */
+    #sites-wrap {
+        margin-top: 56px;
+        width: 100%;
+        max-width: 720px;
+        position: relative;
+        z-index: 1;
+    }
+
+    #sites-label {
+        font-size: 10px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-left: 2px;
+    }
+
+    #sites-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 14px;
+    }
+
+    .site-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 20px 10px 16px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text);
+        transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        group: true;
+    }
+
+    .site-item:hover {
+        background: var(--glass-hover);
+        border-color: rgba(255,255,255,0.13);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+
+    .site-favicon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .site-favicon img {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+    }
+
+    .site-label {
+        font-size: 11px;
+        color: var(--text-dim);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        transition: color 0.2s;
+    }
+
+    .site-item:hover .site-label { color: rgba(255,255,255,0.7); }
+
+    .site-remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: rgba(255,60,60,0.2);
+        border: 1px solid rgba(255,60,60,0.3);
+        color: var(--danger);
+        font-size: 11px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: background 0.15s;
+    }
+
+    .site-remove:hover { background: rgba(255,60,60,0.35); }
+    .site-item:hover .site-remove { display: flex; }
+
+    /* Add button */
+    .site-add-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 10px 16px;
+        background: transparent;
+        border: 1.5px dashed rgba(255,255,255,0.1);
+        border-radius: var(--radius);
+        cursor: pointer;
+        color: var(--text-dim);
+        transition: border-color 0.2s, color 0.2s, background 0.2s;
+        font-family: inherit;
+    }
+
+    .site-add-btn:hover {
+        border-color: rgba(255,255,255,0.22);
+        color: rgba(255,255,255,0.55);
+        background: var(--glass);
+    }
+
+    .site-add-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    .site-add-label {
+        font-size: 11px;
+    }
+
+    /* ── Modal ──────────────────────────────── */
+    #modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(6px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        animation: fade-in 0.15s ease;
+    }
+
+    #modal-overlay.open { display: flex; }
+
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+
+    @keyframes modal-in {
+        from { opacity: 0; transform: scale(0.96) translateY(8px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    #modal {
+        background: #16161f;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px;
+        padding: 28px;
+        width: 360px;
+        box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+        animation: modal-in 0.2s ease;
+    }
+
+    #modal h3 {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #fff;
+    }
+
+    .modal-field {
+        margin-bottom: 14px;
+    }
+
+    .modal-field label {
+        display: block;
+        font-size: 11px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+
+    .modal-field input {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+    }
+
+    .modal-field input:focus {
+        border-color: rgba(129,140,248,0.5);
+        box-shadow: 0 0 0 3px rgba(129,140,248,0.1);
+    }
+
+    .modal-btns {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .modal-btns button {
+        padding: 9px 18px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        font-family: inherit;
+        transition: background 0.15s, opacity 0.15s;
+    }
+
+    #modal-cancel {
+        background: rgba(255,255,255,0.06);
+        color: var(--text-dim);
+    }
+
+    #modal-cancel:hover { background: rgba(255,255,255,0.1); }
+
+    #modal-save {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    #modal-save:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+
+<div id="clock-wrap">
+    <div id="clock">00:00</div>
+    <div id="date"></div>
+</div>
+
+<div id="search-wrap">
+    <span id="search-icon">⌕</span>
+    <input id="search" type="text" placeholder="Search or enter address…" autofocus>
+</div>
+
+<div id="sites-wrap">
+    <div id="sites-label">Quick Access</div>
+    <div id="sites-grid"></div>
+</div>
+
+<div id="modal-overlay">
+    <div id="modal">
+        <h3>Add Site</h3>
+        <div class="modal-field">
+            <label>Name</label>
+            <input id="modal-name" type="text" placeholder="GitHub">
+        </div>
+        <div class="modal-field">
+            <label>URL</label>
+            <input id="modal-url" type="text" placeholder="https://github.com">
+        </div>
+        <div class="modal-btns">
+            <button id="modal-cancel">Cancel</button>
+            <button id="modal-save">Add</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Clock ───────────────────────────────────────────────
+function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    document.getElementById("clock").textContent = `${h}:${m}`;
+    document.getElementById("date").textContent = now.toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric"
+    });
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+// ── Search ──────────────────────────────────────────────
+document.getElementById("search").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const val = e.target.value.trim();
+    if (!val) return;
+    try {
+        const url = new URL(val.includes("://") ? val : "https://" + val);
+        if (url.hostname.includes(".")) { location.href = url.href; return; }
+    } catch {}
+    location.href = "https://duckduckgo.com/?q=" + encodeURIComponent(val);
+});
+
+// ── Sites ───────────────────────────────────────────────
+const DEFAULT_SITES = [
+    { name: "YouTube",    url: "https://youtube.com" },
+    { name: "GitHub",     url: "https://github.com" },
+    { name: "Wikipedia",  url: "https://wikipedia.org" },
+    { name: "Reddit",     url: "https://reddit.com" },
+    { name: "Hacker News",url: "https://news.ycombinator.com" },
+];
+
+function loadSites() {
+    try { return JSON.parse(localStorage.getItem("phantom_dial") || "null") || DEFAULT_SITES; }
+    catch { return DEFAULT_SITES; }
+}
+
+function saveSites(sites) {
+    localStorage.setItem("phantom_dial", JSON.stringify(sites));
+}
+
+function faviconUrl(url) {
+    try {
+        const { hostname } = new URL(url);
+        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
+    } catch { return null; }
+}
+
+function renderSites() {
+    const sites = loadSites();
+    const grid = document.getElementById("sites-grid");
+    grid.innerHTML = "";
+
+    sites.forEach((site, i) => {
+        const a = document.createElement("a");
+        a.className = "site-item";
+        a.href = site.url;
+
+        const fav = document.createElement("div");
+        fav.className = "site-favicon";
+
+        const favUrl = faviconUrl(site.url);
+        if (favUrl) {
+            const img = document.createElement("img");
+            img.src = favUrl;
+            img.onerror = () => {
+                img.remove();
+                fav.textContent = site.name[0].toUpperCase();
+            };
+            fav.appendChild(img);
+        } else {
+            fav.textContent = site.name[0].toUpperCase();
+        }
+
+        const label = document.createElement("div");
+        label.className = "site-label";
+        label.textContent = site.name;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "site-remove";
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const s = loadSites();
+            s.splice(i, 1);
+            saveSites(s);
+            renderSites();
+        });
+
+        a.appendChild(fav);
+        a.appendChild(label);
+        a.appendChild(removeBtn);
+        grid.appendChild(a);
+    });
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "site-add-btn";
+    addBtn.innerHTML = `<span class="site-add-icon">+</span><span class="site-add-label">Add Site</span>`;
+    addBtn.addEventListener("click", openModal);
+    grid.appendChild(addBtn);
+}
+
+// ── Modal ───────────────────────────────────────────────
+function openModal() {
+    document.getElementById("modal-name").value = "";
+    document.getElementById("modal-url").value = "";
+    document.getElementById("modal-overlay").classList.add("open");
+    setTimeout(() => document.getElementById("modal-name").focus(), 50);
+}
+
+function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+}
+
+document.getElementById("modal-cancel").addEventListener("click", closeModal);
+document.getElementById("modal-overlay").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeModal();
+});
+
+document.getElementById("modal-save").addEventListener("click", () => {
+    const name = document.getElementById("modal-name").value.trim();
+    let url = document.getElementById("modal-url").value.trim();
+    if (!name || !url) return;
+    if (!url.startsWith("http")) url = "https://" + url;
+    const sites = loadSites();
+    sites.push({ name, url });
+    saveSites(sites);
+    renderSites();
+    closeModal();
+});
+
+document.getElementById("modal-url").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("modal-save").click();
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+});
+
+renderSites();
+</script>
+</body>
+</html>
