@@ -1,0 +1,79 @@
+diff --git a/browser/extensions/webcompat/injections/js/bug1842437-www.youtube.com-performance-now-precision.js b/browser/extensions/webcompat/injections/js/bug1842437-www.youtube.com-performance-now-precision.js
+index be68ff252eb7..00811318ae54 100644
+--- a/browser/extensions/webcompat/injections/js/bug1842437-www.youtube.com-performance-now-precision.js
++++ b/browser/extensions/webcompat/injections/js/bug1842437-www.youtube.com-performance-now-precision.js
+@@ -19,7 +19,7 @@ if (!window.__firefoxWebCompatFixBug1756970) {
+     value: true,
+   });
+ 
+-  console.info(
++  console.debug(
+     "performance.now precision has been modified for compatibility reasons. See https://bugzilla.mozilla.org/show_bug.cgi?id=1756970 for details."
+   );
+ 
+diff --git a/dom/base/nsScreen.cpp b/dom/base/nsScreen.cpp
+index 7e25021e992b..ffd04129217b 100644
+--- a/dom/base/nsScreen.cpp
++++ b/dom/base/nsScreen.cpp
+@@ -124,16 +124,6 @@ CSSIntRect nsScreen::GetAvailRect() {
+       return {};
+     }
+ 
+-    if (nsPIDOMWindowInner* owner = GetOwnerWindow()) {
+-      if (Document* doc = owner->GetExtantDoc()) {
+-        AutoTArray<nsString, 1> params;
+-        params.AppendElement(
+-            u"https://support.mozilla.org/kb/firefox-protection-against-fingerprinting"_ns);
+-        doc->WarnOnceAbout(Document::eScreenFingerprintingProtection, false,
+-                           params);
+-      }
+-    }
+-
+     return nsRFPService::GetSpoofedScreenAvailSize(
+         context->GetRect(), context->GetFullZoom(), IsFullscreen());
+   }
+diff --git a/netwerk/cookie/CookieService.cpp b/netwerk/cookie/CookieService.cpp
+index f9f0c9405c24..2ea991a7b155 100644
+--- a/netwerk/cookie/CookieService.cpp
++++ b/netwerk/cookie/CookieService.cpp
+@@ -1238,12 +1238,6 @@ CookieStatus CookieService::CheckPrefs(
+         !aStorageAccessPermissionGranted) {
+       COOKIE_LOGFAILURE(!aCookieHeader.IsVoid(), aHostURI, aCookieHeader,
+                         "context is third party");
+-      CookieLogging::LogMessageToConsole(
+-          aCRC, aHostURI, nsIScriptError::warningFlag,
+-          CONSOLE_REJECTION_CATEGORY, "CookieRejectedThirdParty"_ns,
+-          AutoTArray<nsString, 1>{
+-              NS_ConvertUTF8toUTF16(aCookieHeader),
+-          });
+       *aRejectedReason = nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN;
+       return STATUS_REJECTED;
+     }
+@@ -1252,12 +1246,6 @@ CookieStatus CookieService::CheckPrefs(
+         !aStorageAccessPermissionGranted && aNumOfCookies == 0) {
+       COOKIE_LOGFAILURE(!aCookieHeader.IsVoid(), aHostURI, aCookieHeader,
+                         "context is third party");
+-      CookieLogging::LogMessageToConsole(
+-          aCRC, aHostURI, nsIScriptError::warningFlag,
+-          CONSOLE_REJECTION_CATEGORY, "CookieRejectedThirdParty"_ns,
+-          AutoTArray<nsString, 1>{
+-              NS_ConvertUTF8toUTF16(aCookieHeader),
+-          });
+       *aRejectedReason = nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN;
+       return STATUS_REJECTED;
+     }
+diff --git a/toolkit/components/antitracking/ContentBlockingNotifier.cpp b/toolkit/components/antitracking/ContentBlockingNotifier.cpp
+index bad005c3f7e8..9174ae90153c 100644
+--- a/toolkit/components/antitracking/ContentBlockingNotifier.cpp
++++ b/toolkit/components/antitracking/ContentBlockingNotifier.cpp
+@@ -177,9 +177,7 @@ void ReportBlockingToConsole(uint64_t aWindowID, nsIURI* aURI,
+             break;
+ 
+           case uint32_t(nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN):
+-            message = "CookieBlockedForeignByETP";
+-            category = "cookieBlockedForeign"_ns;
+-            break;
++            return;
+ 
+           case uint32_t(
+               nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN):

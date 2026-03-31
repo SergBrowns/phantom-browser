@@ -245,7 +245,7 @@ export class DPIEngine {
         this.#fragmentDelay = Services.prefs.getIntPref("phantom.dpi.fragment.delay", 50);
         this.#microFragSize = Services.prefs.getIntPref("phantom.dpi.fragment.microsize", 3);
         this.#bypassAll = Services.prefs.getBoolPref("phantom.dpi.bypass.all", false);
-        this.#disableQuicForBlocked = Services.prefs.getBoolPref("phantom.dpi.quic.disable", true);
+        this.#disableQuicForBlocked = Services.prefs.getBoolPref("phantom.dpi.quic.disable", false);
 
         // Apply QUIC settings
         this.#applyQuicSettings();
@@ -495,18 +495,24 @@ export class DPIEngine {
     }
 
     /**
-     * Отключает QUIC (HTTP/3) глобально, чтобы весь HTTPS шёл через TCP.
-     * TCP нужен для фрагментации ClientHello.
-     * Если QUIC не отключён, сайты могут обойти наш DPI proxy через UDP.
+     * Управляет QUIC (HTTP/3).
+     *
+     * По умолчанию QUIC включён — браузер использует HTTP/3 для незаблокированных сайтов.
+     * DPI proxy работает через TCP-прокси (HTTP CONNECT); когда Firefox видит, что для
+     * домена назначен прокси, он автоматически переходит на TCP (HTTP/2), поэтому DPI bypass
+     * не требует глобального отключения QUIC.
+     *
+     * Отключить QUIC имеет смысл только если ISP блокирует UDP целиком или
+     * DPI bypass перестаёт работать из-за alt-svc кэша на конкретном устройстве.
+     * Включается вручную через "Отключить QUIC" в панели DPI.
      */
     #applyQuicSettings() {
         if (this.#disableQuicForBlocked) {
-            // Отключаем QUIC глобально — иначе Firefox будет делать alt-svc upgrade на UDP
-            // и наш TCP-прокси не увидит этот трафик
             Services.prefs.setBoolPref("network.http.http3.enabled", false);
             console.log("[DPI] QUIC (HTTP/3) disabled — forcing TCP for DPI bypass");
         } else {
             Services.prefs.setBoolPref("network.http.http3.enabled", true);
+            console.log("[DPI] QUIC (HTTP/3) enabled");
         }
     }
 
@@ -583,8 +589,9 @@ export class DPIEngine {
      * Логика:
      *   1. Пробуем текущего провайдера
      *   2. Если не работает — перебираем остальных
-     *   3. Если хотя бы один работает → TRR mode 3 (DoH only)
-     *   4. Если все мертвы → TRR mode 2 (fallback to system DNS)
+     *   3. Если хотя бы один работает → фиксируем провайдера, остаёмся на mode 2
+     *      (mode 3 убивает DNS при любом сбое DoH — особенно в Flatpak-песочнице)
+     *   4. Если все мертвы → TRR mode 0 (system DNS only)
      */
     async verifyAndUpgradeTrr() {
         const currentProvider = this.getCurrentDoh();
@@ -597,25 +604,28 @@ export class DPIEngine {
             try {
                 const ok = await this.#testDohProvider(provider);
                 if (ok) {
-                    // This provider works — lock to it and upgrade to mode 3
+                    // This provider works — lock to it, keep mode 2 (DoH first, system fallback)
+                    // Mode 3 is dangerous: if DoH connection drops (Flatpak sandbox,
+                    // network change, ISP blocking), ALL DNS dies with no recovery path.
+                    // Mode 2 gives us DoH benefits with graceful degradation.
                     if (provider.id !== currentProvider.id) {
                         this.setDohProvider(provider.id);
                     }
-                    Services.prefs.setIntPref("network.trr.mode", 3);
+                    Services.prefs.setIntPref("network.trr.mode", 2);
                     this.#trrVerified = true;
-                    console.log(`[DPI] DoH verified: ${provider.name} — TRR mode → 3 (strict)`);
-                    return { ok: true, provider, mode: 3 };
+                    console.log(`[DPI] DoH verified: ${provider.name} — TRR mode 2 (DoH first, system fallback)`);
+                    return { ok: true, provider, mode: 2 };
                 }
             } catch {
                 // Provider unreachable — try next
             }
         }
 
-        // All providers failed — stay at mode 2 for graceful degradation
-        Services.prefs.setIntPref("network.trr.mode", 2);
+        // All providers failed — disable DoH, use system DNS only
+        Services.prefs.setIntPref("network.trr.mode", 0);
         this.#trrVerified = false;
-        console.warn("[DPI] All DoH providers unreachable — TRR mode → 2 (fallback to system DNS)");
-        return { ok: false, mode: 2 };
+        console.warn("[DPI] All DoH providers unreachable — TRR mode → 0 (system DNS only)");
+        return { ok: false, mode: 0 };
     }
 
     /**

@@ -321,7 +321,13 @@
             if (btn) btn.textContent = "Updating...";
 
             const result = await phantomVPN.updateSubscription();
-            if (btn) btn.textContent = result.ok ? `${result.count} servers` : "Failed";
+            if (result.ok) {
+                if (btn) btn.textContent = `${result.count} servers`;
+            } else {
+                if (btn) btn.textContent = "Failed";
+                showToast(`Subscription error: ${result.error || "unknown"}`);
+                console.error("[VPN] Subscription failed:", result.error);
+            }
             setTimeout(() => renderPanel(), 1500);
         });
 
@@ -540,16 +546,20 @@
                         return;
                     }
 
-                    // 2. IP-blocked domains → VPN (if running)
-                    const isIpBlock = window.PhantomDPI?.isIpBlocked(host);
-                    if (isIpBlock && phantomVPN.running) {
-                        const proxyInfo = pps.newProxyInfo(
-                            "socks", "127.0.0.1", phantomVPN.socksPort,
-                            "", "", Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
-                            4294967295, null
-                        );
-                        callback.onProxyFilterResult(proxyInfo);
-                        return;
+                    // 2. VPN running → route all non-Russian traffic through VPN
+                    //    Exception: SNI-blocked domains already handled by DPI proxy — don't override
+                    if (phantomVPN.running) {
+                        const isDpiHandled = window.PhantomDPI?.isBlocked(host) &&
+                            !window.PhantomDPI?.isIpBlocked(host);
+                        if (!isDpiHandled) {
+                            const proxyInfo = pps.newProxyInfo(
+                                "socks", "127.0.0.1", phantomVPN.socksPort,
+                                "", "", Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
+                                4294967295, null
+                            );
+                            callback.onProxyFilterResult(proxyInfo);
+                            return;
+                        }
                     }
 
                     // 3. Otherwise — keep DPI filter's decision (defaultProxyInfo)
@@ -603,7 +613,24 @@
                 try {
                     const channel = subject.QueryInterface(Ci.nsIChannel);
                     const host = channel.URI?.host;
-                    if (host && !isRussianDomain(host)) {
+                    if (!host) return;
+
+                    // Only track failures for domains in the DPI block list
+                    const dpi = window.PhantomDPI;
+                    if (!dpi?.isBlocked?.(host) || dpi.isIpBlocked(host)) return;
+                    if (isRussianDomain(host)) return;
+
+                    // Check if the request actually failed (not just completed)
+                    try {
+                        const httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
+                        const status = httpChannel.responseStatus;
+                        // Successful response — don't count as failure
+                        if (status >= 200 && status < 400) {
+                            failureTracker.delete(host);
+                            return;
+                        }
+                    } catch {
+                        // Can't get responseStatus = connection-level failure
                         trackConnectionFailure(host);
                     }
                 } catch {}

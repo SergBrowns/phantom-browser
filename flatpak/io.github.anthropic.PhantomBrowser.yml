@@ -15,19 +15,24 @@ finish-args:
   - --share=network
   # Audio
   - --socket=pulseaudio
-  # User directories
+  # User directories — только загрузки; документы доступны через portal FileChooser без прямого доступа
   - --filesystem=xdg-download
-  - --filesystem=xdg-documents
   # Printing
   - --socket=cups
   # Notifications
   - --talk-name=org.freedesktop.Notifications
   # Webcam & devices
+  # --device=all нужен для доступа к v4l2 (вебкамера) в Firefox без поддержки camera portal.
+  # Как только Gecko реализует xdg-desktop-portal camera, заменить на --device=dri.
   - --device=all
   # Portal access (screen sharing, file chooser)
   - --talk-name=org.freedesktop.portal.Desktop
   - --talk-name=org.freedesktop.portal.FileChooser
   - --talk-name=org.freedesktop.portal.ScreenCast
+  # DNS resolution (systemd-resolved fallback)
+  - --system-talk-name=org.freedesktop.resolve1
+  # Network state detection
+  - --system-talk-name=org.freedesktop.NetworkManager
   # MPRIS (media keys)
   - --own-name=org.mpris.MediaPlayer2.phantom.*
   # Spell check
@@ -41,6 +46,14 @@ cleanup:
   - '*.la'
 
 modules:
+  - name: sing-box
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 sing-box /app/bin/sing-box
+    sources:
+      - type: file
+        path: /usr/bin/sing-box
+
   - name: phantom-browser
     buildsystem: simple
     build-commands:
@@ -58,6 +71,7 @@ modules:
     sources:
       - type: archive
         path: phantom-151.0a1.tar.xz
+        strip-components: 0
       - type: file
         path: phantom-browser.sh
       - type: file

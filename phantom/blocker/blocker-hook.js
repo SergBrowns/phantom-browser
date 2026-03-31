@@ -20,7 +20,8 @@
         "media",
         "font",
         "websocket",
-        "ping",
+        "ping",    // <a ping="...">
+        "beacon",  // navigator.sendBeacon() — частый вектор трекинга при закрытии вкладки
         "other",
     ]);
 
@@ -69,6 +70,7 @@
 
     function contentPolicyTypeToString(type) {
         switch (type) {
+            case Ci.nsIContentPolicy.TYPE_DOCUMENT: return "document";
             case Ci.nsIContentPolicy.TYPE_SCRIPT: return "script";
             case Ci.nsIContentPolicy.TYPE_IMAGE: return "image";
             case Ci.nsIContentPolicy.TYPE_STYLESHEET: return "stylesheet";
@@ -79,6 +81,7 @@
             case Ci.nsIContentPolicy.TYPE_FONT: return "font";
             case Ci.nsIContentPolicy.TYPE_WEBSOCKET: return "websocket";
             case Ci.nsIContentPolicy.TYPE_PING: return "ping";
+            case Ci.nsIContentPolicy.TYPE_BEACON: return "beacon";
             default: return "other";
         }
     }

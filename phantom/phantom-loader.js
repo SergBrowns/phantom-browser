@@ -34,6 +34,15 @@
         "chrome://phantom/content/quick-actions/quick-actions.js",
     ];
 
+    // Диагностика доступна глобально: window.PhantomDiagnostics.save()
+    const diagModule = ChromeUtils.importESModule(
+        "resource://phantom/diagnostics/diagnostics.sys.mjs"
+    );
+    window.PhantomDiagnostics = {
+        export: diagModule.exportDiagnostics,
+        save:   diagModule.saveDiagnosticsToFile,
+    };
+
     function loadModule(src) {
         return new Promise((resolve) => {
             const script = document.createElement("script");

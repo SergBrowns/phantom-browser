@@ -327,40 +327,65 @@ export class VPNEngine {
         if (!this.#subscriptionUrl) return { ok: false, error: "No subscription URL" };
 
         try {
-            // Generate HWID from profile path for consistency
+            // Generate stable UUID-format HWID from profile path
             if (!this.#subscriptionHwid) {
-                const ua = Services.appinfo?.name || "Phantom";
-                const raw = PathUtils.profileDir + ua;
-                let hash = 0;
+                const raw = PathUtils.profileDir;
+                // Deterministic 128-bit hash → UUID v4 format
+                let h1 = 0x9e3779b9, h2 = 0x6c62272e, h3 = 0x14c9f7e5, h4 = 0xf39cc0ad;
                 for (let i = 0; i < raw.length; i++) {
-                    hash = ((hash << 5) - hash + raw.charCodeAt(i)) | 0;
+                    const c = raw.charCodeAt(i);
+                    h1 = Math.imul(h1 ^ c, 0x9e3779b9) >>> 0;
+                    h2 = Math.imul(h2 ^ c, 0x85ebca77) >>> 0;
+                    h3 = Math.imul(h3 ^ c, 0xc2b2ae3d) >>> 0;
+                    h4 = Math.imul(h4 ^ c, 0x27d4eb2f) >>> 0;
                 }
-                this.#subscriptionHwid = "phantom-" + Math.abs(hash).toString(16).padStart(8, "0") +
-                    Date.now().toString(16).slice(-8);
+                const hex = n => n.toString(16).padStart(8, "0");
+                // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+                const a = hex(h1), b = hex(h2), c = hex(h3), d = hex(h4);
+                this.#subscriptionHwid = `${a}-${b.slice(0,4)}-4${b.slice(5,8)}-${((parseInt(c[0],16)&3)|8).toString(16)}${c.slice(1,4)}-${c.slice(4)}${d}`;
+                this.#saveCacheAsync(); // save immediately so HWID stays stable across restarts
             }
 
-            const response = await xhrFetch(this.#subscriptionUrl, {
-                headers: {
-                    "User-Agent": `HiddifyNext/2.5.1 (${this.#subscriptionHwid})`,
-                    "X-HWID": this.#subscriptionHwid,
-                },
+            // Try with Hiddify UA first, fall back to plain UA if only dummy servers returned
+            const fetchSub = (ua, extraHeaders = {}) => xhrFetch(this.#subscriptionUrl, {
+                headers: { "User-Agent": ua, ...extraHeaders },
                 timeout: 15000,
             });
+
+            let response = await fetchSub(
+                `HiddifyNext/2.5.1 (${this.#subscriptionHwid})`,
+                { "X-HWID": this.#subscriptionHwid }
+            );
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            const text = await response.text();
-            const decoded = this.#tryBase64Decode(text) || text;
-            const lines = decoded.split("\n").map(l => l.trim()).filter(Boolean);
+            let text = await response.text();
+            let decoded = this.#tryBase64Decode(text) || text;
+            let lines = decoded.split("\n").map(l => l.trim()).filter(Boolean);
+
+            // If all servers are dummy (0.0.0.0), retry with plain User-Agent
+            const realLines = lines.filter(l => l.startsWith("vless://") && !l.includes("@0.0.0.0:"));
+            if (realLines.length === 0 && lines.length > 0) {
+                console.log("[VPN] Only dummy entries with HiddifyNext UA, retrying with plain UA...");
+                response = await fetchSub("Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0");
+                if (response.ok) {
+                    text = await response.text();
+                    decoded = this.#tryBase64Decode(text) || text;
+                    lines = decoded.split("\n").map(l => l.trim()).filter(Boolean);
+                }
+            }
             const servers = [];
+
+            // Логируем только количество и протоколы — не содержимое (там могут быть токены/UUID)
+            const detectedProtocols = new Set(lines.map(l => l.split("://")[0]).filter(p => p.length < 20));
+            console.log(`[VPN] Subscription: ${lines.length} lines, protocols: ${[...detectedProtocols].join(", ")}`);
 
             for (const line of lines) {
                 if (line.startsWith("vless://")) {
                     const parsed = parseVlessUri(line);
                     if (parsed) {
-                        // Preserve latency from existing server with same ID
                         const existing = this.#servers.find(s => s.id === parsed.id);
                         if (existing) {
                             parsed.latency = existing.latency;
@@ -373,7 +398,8 @@ export class VPNEngine {
             }
 
             if (servers.length === 0) {
-                return { ok: false, error: "No valid servers found" };
+                const protocols = [...detectedProtocols].join(", ") || "unknown";
+                return { ok: false, error: `No VLESS servers found (got: ${protocols})` };
             }
 
             this.#servers = servers;
@@ -389,9 +415,9 @@ export class VPNEngine {
 
     #tryBase64Decode(text) {
         try {
-            // Standard base64 or URL-safe base64
-            const normalized = text.trim().replace(/[-_]/g, m => m === "-" ? "+" : "/");
-            return atob(normalized);
+            const normalized = text.trim().replace(/-/g, "+").replace(/_/g, "/");
+            const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+            return atob(padded);
         } catch {
             return null;
         }
@@ -678,21 +704,22 @@ export class VPNEngine {
     // ── Find sing-box binary ───────────────────────────────────
 
     async #findSingBox() {
-        // Get home directory via XPCOM (PathUtils.homeDir doesn't exist)
         let homeDir = "";
         try {
             homeDir = Services.dirsvc.get("Home", Ci.nsIFile).path;
         } catch {}
 
         const candidates = [
-            // System — most likely on Linux
+            // Flatpak app directory
+            "/app/bin/sing-box",
+            "/app/lib/phantom/sing-box",
+            // System — native package
             "/usr/bin/sing-box",
             "/usr/local/bin/sing-box",
             "/snap/bin/sing-box",
             // Profile-local
             PathUtils.join(PathUtils.profileDir, "sing-box"),
         ];
-        // User-local paths (only if homeDir resolved)
         if (homeDir) {
             candidates.push(
                 PathUtils.join(homeDir, ".phantom", "bin", "sing-box"),
@@ -710,20 +737,23 @@ export class VPNEngine {
             } catch {}
         }
 
-        // Try $PATH via `which`
-        try {
-            const proc = await getSubprocess().call({
-                command: "/usr/bin/which",
-                arguments: ["sing-box"],
-                stderr: "pipe",
-            });
-            const stdout = await proc.stdout.readString();
-            await proc.wait();
-            const path = stdout.trim();
-            if (path && !path.includes("not found")) {
-                return path;
-            }
-        } catch {}
+        // Try $PATH via `which` (not available in Flatpak, but works natively)
+        for (const whichPath of ["/usr/bin/which", "/bin/which"]) {
+            try {
+                if (!(await IOUtils.exists(whichPath))) continue;
+                const proc = await getSubprocess().call({
+                    command: whichPath,
+                    arguments: ["sing-box"],
+                    stderr: "pipe",
+                });
+                const stdout = await proc.stdout.readString();
+                await proc.wait();
+                const path = stdout.trim();
+                if (path && !path.includes("not found")) {
+                    return path;
+                }
+            } catch {}
+        }
 
         return null;
     }

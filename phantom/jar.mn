@@ -26,3 +26,4 @@ browser.jar:
     phantom/vpn/vpn-engine.sys.mjs                           (vpn/vpn-engine.sys.mjs)
     phantom/vpn/vpn-hook.js                                  (vpn/vpn-hook.js)
     phantom/new-tab/new-tab.html                             (new-tab/new-tab.html)
+    phantom/diagnostics/diagnostics.sys.mjs                  (diagnostics/diagnostics.sys.mjs)
