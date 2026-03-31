@@ -5,6 +5,9 @@ flatpak/build-dir/
 flatpak/phantom-*.tar.xz
 flatpak/.flatpak-builder/
 
+# Flatpak OSTree repo (отдельный git-репо, пушится независимо)
+repo-flatpak/
+
 # OS / editor
 .DS_Store
 *~

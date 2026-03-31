@@ -10,6 +10,7 @@ FIREFOX_SRC="${FIREFOX_SRC:-$HOME/mozilla-unified}"
 DIST_DIR="$FIREFOX_SRC/obj-phantom/dist"
 VERSION="151.0a1"
 ARCHIVE_NAME="phantom-${VERSION}.tar.xz"
+GPG_KEY_FINGERPRINT="BE19E9A1EC50086E27C3EC389DD6DF07A31D15AE"
 
 echo "=== Phantom Browser — Flatpak Build ==="
 echo ""
@@ -50,6 +51,7 @@ cp "$PROJECT_DIR/phantom/blocker/blocker-hook.js"   "$OMNI_TMP/chrome/browser/ph
 cp "$PROJECT_DIR/phantom/proxy/proxy-manager.sys.mjs" "$OMNI_TMP/chrome/browser/phantom/proxy/proxy-manager.sys.mjs"
 cp "$PROJECT_DIR/phantom/proxy/proxy-hook.js"       "$OMNI_TMP/chrome/browser/phantom/proxy/proxy-hook.js"
 cp "$PROJECT_DIR/phantom/phantom-loader.js"         "$OMNI_TMP/chrome/browser/phantom/phantom-loader.js"
+mkdir -p "$OMNI_TMP/chrome/browser/phantom/diagnostics"
 cp "$PROJECT_DIR/phantom/diagnostics/diagnostics.sys.mjs" "$OMNI_TMP/chrome/browser/phantom/diagnostics/diagnostics.sys.mjs"
 cp "$PROJECT_DIR/phantom/ai/ai-sidebar.js"          "$OMNI_TMP/chrome/browser/phantom/ai/ai-sidebar.js"
 cp "$PROJECT_DIR/phantom/ai/ai-provider.sys.mjs"    "$OMNI_TMP/chrome/browser/phantom/ai/ai-provider.sys.mjs"
@@ -109,11 +111,13 @@ flatpak-builder --force-clean \
     --user \
     --install-deps-from=flathub \
     --repo="$REPO_DIR" \
+    --gpg-sign="$GPG_KEY_FINGERPRINT" \
     build-dir \
     io.github.anthropic.PhantomBrowser.yml
 
-# Generate static repo index (нужен для GitHub Pages)
+# Generate static repo index and sign (нужен для GitHub Pages)
 flatpak build-update-repo \
+    --gpg-sign="$GPG_KEY_FINGERPRINT" \
     --generate-static-deltas \
     --default-branch=master \
     "$REPO_DIR"
@@ -122,7 +126,7 @@ echo ""
 echo "=== Flatpak build complete! ==="
 echo ""
 echo "Локальная установка:"
-echo "  flatpak --user remote-add --no-gpg-verify phantom $REPO_DIR"
+echo "  flatpak --user remote-add phantom $REPO_DIR"
 echo "  flatpak --user install phantom io.github.anthropic.PhantomBrowser"
 echo ""
 echo "Публикация для пользователей:"
