@@ -48,6 +48,22 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="152.0" date="2026-04-01">
+      <description>
+        <ul>
+          <li>Исправлены уязвимости XSS</li>
+          <li>Улучшена валидация URL</li>
+        </ul>
+      </description>
+    </release>
+    <release version="152.0" date="2026-04-01">
+      <description>
+        <ul>
+          <li>Исправлены уязвимости XSS в chrome-контексте</li>
+          <li>Улучшена валидация URL</li>
+        </ul>
+      </description>
+    </release>
     <release version="151.0a1" date="2026-03-30">
       <description>
         <p>Initial Flatpak release based on Firefox 151.</p>
