@@ -242,7 +242,7 @@
                             <span class="vpn-server-flag">${s.flag || '🌐'}</span>
                             <div class="vpn-server-info">
                                 <div class="vpn-server-name">${esc(s.name)}</div>
-                                <div class="vpn-server-addr">${esc(s.server)}:${s.port} · ${s.security || 'reality'}</div>
+                                <div class="vpn-server-addr">${esc(s.server)}:${s.port} · ${esc(s.security || 'reality')}</div>
                             </div>
                             <span class="vpn-server-latency ${latClass}">${latText}</span>
                         </div>`;
@@ -478,6 +478,21 @@
         return CDN_PATTERNS.some(p => p.test(host));
     }
 
+    // Ask user before adding a domain to the IP-block list
+    function promptIpBlockDetected(host) {
+        const result = Services.prompt.confirmEx(
+            window,
+            "Обнаружена IP-блокировка",
+            `${host} не открывается через DPI-обход.\nДобавить в список IP-блокировки и маршрутизировать через VPN?`,
+            Services.prompt.STD_YES_NO_BUTTONS,
+            null, null, null, null, { value: false }
+        );
+        if (result === 0) { // Yes
+            window.PhantomDPI?.markIpBlocked(host);
+            showToast(`${host} → VPN`);
+        }
+    }
+
     // Track connection failures for auto IP-block detection
     const failureTracker = new Map(); // host → { count, lastTime }
     const FAILURE_THRESHOLD = 3;      // failures before marking IP-blocked
@@ -496,14 +511,12 @@
         entry.lastTime = now;
         failureTracker.set(host, entry);
 
-        // Auto-mark as IP-blocked after threshold
+        // Notify user when IP-block suspected — let them confirm before adding
         if (entry.count >= FAILURE_THRESHOLD && !isRussianDomain(host) && !isCdnSubdomain(host)) {
             const dpiEngine = window.PhantomDPI;
             if (dpiEngine && !dpiEngine.isIpBlocked(host)) {
-                dpiEngine.markIpBlocked(host);
                 failureTracker.delete(host);
-                console.log(`[VPN] Auto-detected IP-block: ${host} (${FAILURE_THRESHOLD} DPI failures)`);
-                showToast(`🛡 ${host} — IP-блокировка, маршрут через VPN`);
+                promptIpBlockDetected(host);
             }
         }
     }

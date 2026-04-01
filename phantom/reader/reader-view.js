@@ -223,32 +223,80 @@
         const byline = [article.byline, article.siteName].filter(Boolean).join(" · ");
         const readTime = article.estimatedReadTime;
 
-        doc.body.innerHTML = `
-            <div class="phantom-reader-toolbar" id="phantom-reader-toolbar">
-                <button data-theme="dark" title="Dark theme">D</button>
-                <button data-theme="light" title="Light theme">L</button>
-                <button data-theme="sepia" title="Sepia theme">S</button>
-                <button data-theme="paper" title="Paper theme">P</button>
-                <button data-action="font-down" title="Smaller text">A-</button>
-                <button data-action="font-up" title="Larger text">A+</button>
-                <button data-action="width-down" title="Narrower">◁</button>
-                <button data-action="width-up" title="Wider">▷</button>
-                <button data-action="close" title="Exit reader">✕</button>
-            </div>
+        // Build DOM safely — no raw HTML from page content
+        doc.body.textContent = "";
 
-            <div class="phantom-reader-container">
-                <div class="phantom-reader-meta">
-                    <h1 class="phantom-reader-title">${article.title}</h1>
-                    ${byline ? `<div class="phantom-reader-byline">${byline} · ${readTime} min read</div>` : ""}
-                </div>
-                <div class="phantom-reader-content">
-                    ${article.content}
-                </div>
-            </div>
-        `;
+        // Toolbar (static trusted content)
+        const toolbar = doc.createElement("div");
+        toolbar.className = "phantom-reader-toolbar";
+        toolbar.id = "phantom-reader-toolbar";
+        for (const [th, title] of [["dark","Dark theme"],["light","Light theme"],["sepia","Sepia theme"],["paper","Paper theme"]]) {
+            const btn = doc.createElement("button");
+            btn.dataset.theme = th;
+            btn.title = title;
+            btn.textContent = th[0].toUpperCase();
+            toolbar.appendChild(btn);
+        }
+        for (const [action, title, label] of [
+            ["font-down","Smaller text","A-"], ["font-up","Larger text","A+"],
+            ["width-down","Narrower","◁"], ["width-up","Wider","▷"], ["close","Exit reader","✕"],
+        ]) {
+            const btn = doc.createElement("button");
+            btn.dataset.action = action;
+            btn.title = title;
+            btn.textContent = label;
+            toolbar.appendChild(btn);
+        }
+        doc.body.appendChild(toolbar);
+
+        // Container
+        const container = doc.createElement("div");
+        container.className = "phantom-reader-container";
+
+        // Meta — textContent for article data (never innerHTML)
+        const meta = doc.createElement("div");
+        meta.className = "phantom-reader-meta";
+        const titleEl = doc.createElement("h1");
+        titleEl.className = "phantom-reader-title";
+        titleEl.textContent = article.title;
+        meta.appendChild(titleEl);
+        if (byline) {
+            const bylineEl = doc.createElement("div");
+            bylineEl.className = "phantom-reader-byline";
+            bylineEl.textContent = `${byline} · ${readTime} min read`;
+            meta.appendChild(bylineEl);
+        }
+        container.appendChild(meta);
+
+        // Content — sanitize HTML extracted from web page
+        const contentDiv = doc.createElement("div");
+        contentDiv.className = "phantom-reader-content";
+        try {
+            const range = doc.createRange();
+            range.selectNode(doc.body);
+            const fragment = range.createContextualFragment(article.content);
+            // Remove dangerous elements
+            for (const el of fragment.querySelectorAll("script,iframe,object,embed,form,base,meta,link")) {
+                el.remove();
+            }
+            // Strip inline event handlers and javascript: hrefs
+            for (const el of fragment.querySelectorAll("*")) {
+                for (const attr of [...el.attributes]) {
+                    if (attr.name.startsWith("on")) el.removeAttributeNode(attr);
+                }
+                if (el.tagName === "A") {
+                    const href = (el.getAttribute("href") || "").trim();
+                    if (/^javascript:/i.test(href)) el.removeAttribute("href");
+                }
+            }
+            contentDiv.appendChild(fragment);
+        } catch {
+            contentDiv.textContent = article.content.replace(/<[^>]*>/g, " ");
+        }
+        container.appendChild(contentDiv);
+        doc.body.appendChild(container);
 
         // Toolbar events
-        const toolbar = doc.getElementById("phantom-reader-toolbar");
         toolbar.addEventListener("click", (e) => {
             const btn = e.target.closest("button");
             if (!btn) return;

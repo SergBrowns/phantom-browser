@@ -31,13 +31,17 @@
         }
     }
 
-    // ─── QR Code from URL ───────────────────────────────
+    // ─── Share URL (local — no external API) ────────────
 
     function generateQR() {
         const url = window.gBrowser.selectedBrowser.currentURI.spec;
 
-        // Minimal QR implementation via external API (no dependencies)
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+        const overlay = document.createElement("div");
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 99998; background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+        `;
 
         const panel = document.createElement("div");
         panel.style.cssText = `
@@ -50,32 +54,49 @@
             padding: 24px;
             box-shadow: 0 16px 48px rgba(0,0,0,0.5);
             text-align: center;
+            min-width: 280px;
         `;
 
-        panel.innerHTML = `
-            <img src="${qrUrl}" width="200" height="200"
-                 style="border-radius: 8px; background: white; padding: 8px;">
-            <div style="color: #888; font-size: 11px; margin-top: 12px;
-                        max-width: 250px; word-break: break-all;">
-                ${url.substring(0, 80)}${url.length > 80 ? "..." : ""}
-            </div>
-            <button style="margin-top: 12px; background: #6C7AE0; border: none;
-                           color: white; padding: 6px 16px; border-radius: 6px;
-                           cursor: pointer; font-size: 12px;">
-                Close
-            </button>
-        `;
+        const label = document.createElement("div");
+        label.style.cssText = "color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;";
+        label.textContent = "Current URL";
 
-        const overlay = document.createElement("div");
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 99998; background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(4px);
+        const urlBox = document.createElement("div");
+        urlBox.style.cssText = `
+            color: #d4d4d8; font-size: 12px; background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+            padding: 10px 12px; word-break: break-all; text-align: left;
+            max-width: 300px; max-height: 80px; overflow-y: auto;
+            font-family: monospace;
         `;
+        urlBox.textContent = url; // textContent — never innerHTML for URLs
+
+        const btnRow = document.createElement("div");
+        btnRow.style.cssText = "display: flex; gap: 8px; margin-top: 14px; justify-content: center;";
+
+        const copyBtn = document.createElement("button");
+        copyBtn.style.cssText = "background: #6C7AE0; border: none; color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 12px;";
+        copyBtn.textContent = "Copy URL";
+        copyBtn.addEventListener("click", () => {
+            navigator.clipboard.writeText(url).then(() => {
+                copyBtn.textContent = "Copied!";
+                setTimeout(() => { copyBtn.textContent = "Copy URL"; }, 1500);
+            });
+        });
+
+        const closeBtn = document.createElement("button");
+        closeBtn.style.cssText = "background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #aaa; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 12px;";
+        closeBtn.textContent = "Close";
+
+        panel.appendChild(label);
+        panel.appendChild(urlBox);
+        btnRow.appendChild(copyBtn);
+        btnRow.appendChild(closeBtn);
+        panel.appendChild(btnRow);
 
         const close = () => { overlay.remove(); panel.remove(); };
         overlay.addEventListener("click", close);
-        panel.querySelector("button").addEventListener("click", close);
+        closeBtn.addEventListener("click", close);
 
         document.documentElement.appendChild(overlay);
         document.documentElement.appendChild(panel);

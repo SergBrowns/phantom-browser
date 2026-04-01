@@ -175,8 +175,13 @@
             if (e.key === "Enter") {
                 let newUrl = urlInput.value.trim();
                 if (!newUrl.includes("://")) newUrl = "https://" + newUrl;
+                // Validate scheme — only allow http, https, about:
+                try {
+                    const parsed = new URL(newUrl);
+                    if (parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.protocol !== "about:") return;
+                } catch { return; }
                 browser.loadURI(Services.io.newURI(newUrl), {
-                    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+                    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
                 });
             }
         });
@@ -204,7 +209,7 @@
         requestAnimationFrame(() => {
             try {
                 browser.loadURI(Services.io.newURI(url), {
-                    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+                    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
                 });
             } catch (e) {
                 console.debug("[SplitView] Load error:", e.message);

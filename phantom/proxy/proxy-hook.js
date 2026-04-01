@@ -296,7 +296,7 @@
                     ${rules.map((r, i) => `
                         <div class="proxy-rule-row">
                             <span class="proxy-rule-pattern">${escapeHtml(r.pattern)}</span>
-                            <span class="proxy-rule-target">${r.proxyId === 'direct' ? 'Direct' : (phantomProxy.getProfile(r.proxyId)?.name || r.proxyId)}</span>
+                            <span class="proxy-rule-target">${r.proxyId === 'direct' ? 'Direct' : escapeHtml(phantomProxy.getProfile(r.proxyId)?.name || r.proxyId)}</span>
                             <span class="proxy-rule-remove" data-rule-idx="${i}">×</span>
                         </div>
                     `).join('')}
@@ -309,7 +309,7 @@
                         <input type="text" class="proxy-input" id="proxy-rule-pattern" placeholder="*.youtube.com" spellcheck="false" />
                         <select class="proxy-type-select" id="proxy-rule-target" style="min-width:100px">
                             <option value="direct">Direct</option>
-                            ${profiles.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
+                            ${profiles.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('')}
                         </select>
                         <button class="proxy-btn primary" id="proxy-rule-add" style="flex:0; padding:7px 14px">+</button>
                     </div>
