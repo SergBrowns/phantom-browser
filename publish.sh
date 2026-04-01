@@ -110,10 +110,56 @@ git push origin master
 echo "  Pushed to origin/master."
 echo ""
 
+# --- Step 5: Tag + GitHub Release ---
+echo "[5/5] Creating GitHub Release..."
+cd "$SCRIPT_DIR"
+
+# Commit and push version bump in main repo first
+git add flatpak/build-flatpak.sh flatpak/io.github.anthropic.PhantomBrowser.yml \
+        flatpak/io.github.anthropic.PhantomBrowser.metainfo.xml 2>/dev/null || true
+if ! git diff --cached --quiet; then
+    git commit -m "release: bump version to $NEW_VERSION"
+fi
+git push origin main
+
+# Build release notes
+RELEASE_NOTES="## Phantom Browser $NEW_VERSION"$'\n'$'\n'
+if [ ${#CHANGELOG_ARGS[@]} -gt 0 ]; then
+    for line in "${CHANGELOG_ARGS[@]}"; do
+        RELEASE_NOTES+="- $line"$'\n'
+    done
+    RELEASE_NOTES+=$'\n'
+fi
+RELEASE_NOTES+="**Установка:**"$'\n'
+RELEASE_NOTES+="\`\`\`"$'\n'
+RELEASE_NOTES+="flatpak install phantom-browser.flatpakref"$'\n'
+RELEASE_NOTES+="\`\`\`"$'\n'
+RELEASE_NOTES+="**Обновление:**"$'\n'
+RELEASE_NOTES+="\`\`\`"$'\n'
+RELEASE_NOTES+="flatpak update io.github.anthropic.PhantomBrowser"$'\n'
+RELEASE_NOTES+="\`\`\`"
+
+TAG="v$NEW_VERSION"
+
+# Delete existing tag if re-releasing same version
+git tag -d "$TAG" 2>/dev/null || true
+gh release delete "$TAG" --yes 2>/dev/null || true
+
+git tag "$TAG"
+git push origin "$TAG"
+
+gh release create "$TAG" \
+    --title "Phantom Browser $NEW_VERSION" \
+    --notes "$RELEASE_NOTES" \
+    "$SCRIPT_DIR/phantom-browser.flatpakref"
+
+echo "  GitHub Release создан: https://github.com/SergBrowns/phantom-browser/releases/tag/$TAG"
+echo ""
+
 echo "=== Published! ==="
 echo ""
-echo "GitHub Pages URL (актуально через ~2 мин):"
-echo "  https://SergBrowns.github.io/phantom-browser-repo/"
+echo "GitHub Release:  https://github.com/SergBrowns/phantom-browser/releases/tag/$TAG"
+echo "GitHub Pages:    https://SergBrowns.github.io/phantom-browser-repo/ (через ~2 мин)"
 echo ""
 echo "Пользователи устанавливают:"
 echo "  flatpak install phantom-browser.flatpakref"
