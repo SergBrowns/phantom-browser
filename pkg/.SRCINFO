@@ -19,6 +19,6 @@ pkgbase = phantom-browser-bin
 	provides = phantom-browser
 	conflicts = phantom-browser
 	source_x86_64 = phantom-153.0.tar.xz::https://github.com/SergBrowns/phantom-browser/releases/download/v153.0/phantom-153.0.tar.xz
-	sha256sums_x86_64 = 856c7cdc77a2c08fec56d86b278a96afa816471b6bdc04d8ee4c688e559fbee7
+	sha256sums_x86_64 = 0d610fcb5fc16a37a7acb0351afedc22952ec0584c9c1395666f60e7cb4b4267
 
 pkgname = phantom-browser-bin
