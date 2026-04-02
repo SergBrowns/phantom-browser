@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 FIREFOX_SRC="${FIREFOX_SRC:-$HOME/mozilla-unified}"
 DIST_DIR="$FIREFOX_SRC/obj-phantom/dist"
-VERSION="152.0"
+VERSION="153.0"
 ARCHIVE_NAME="phantom-${VERSION}.tar.xz"
 GPG_KEY_FINGERPRINT="BE19E9A1EC50086E27C3EC389DD6DF07A31D15AE"
 
@@ -53,8 +53,8 @@ cp "$PROJECT_DIR/phantom/proxy/proxy-hook.js"       "$OMNI_TMP/chrome/browser/ph
 cp "$PROJECT_DIR/phantom/phantom-loader.js"         "$OMNI_TMP/chrome/browser/phantom/phantom-loader.js"
 mkdir -p "$OMNI_TMP/chrome/browser/phantom/diagnostics"
 cp "$PROJECT_DIR/phantom/diagnostics/diagnostics.sys.mjs" "$OMNI_TMP/chrome/browser/phantom/diagnostics/diagnostics.sys.mjs"
-cp "$PROJECT_DIR/phantom/ai/ai-sidebar.js"          "$OMNI_TMP/chrome/browser/phantom/ai/ai-sidebar.js"
-cp "$PROJECT_DIR/phantom/ai/ai-provider.sys.mjs"    "$OMNI_TMP/chrome/browser/phantom/ai/ai-provider.sys.mjs"
+mkdir -p "$OMNI_TMP/chrome/browser/phantom/rkn"
+cp "$PROJECT_DIR/phantom/rkn/rkn-sync.sys.mjs"      "$OMNI_TMP/chrome/browser/phantom/rkn/rkn-sync.sys.mjs"
 python3 -c "
 import zipfile, os
 omni = '$OMNI'

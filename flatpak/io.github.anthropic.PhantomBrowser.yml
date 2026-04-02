@@ -70,7 +70,7 @@ modules:
         done
     sources:
       - type: archive
-        path: phantom-152.0.tar.xz
+        path: phantom-153.0.tar.xz
         strip-components: 0
       - type: file
         path: phantom-browser.sh
