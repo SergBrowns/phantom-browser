@@ -88,6 +88,15 @@
       <description>
         <ul>
           <li>Удален AI сайдбар</li>
+          <li>Реализована система интеграции с реестром РКН</li>
+          <li>Поддержка split-tunnel по спискам РКН</li>
+        </ul>
+      </description>
+    </release>
+    <release version="153.0" date="2026-04-02">
+      <description>
+        <ul>
+          <li>Удален AI сайдбар</li>
         </ul>
       </description>
     </release>
