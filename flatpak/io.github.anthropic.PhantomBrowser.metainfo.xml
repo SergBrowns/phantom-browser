@@ -48,6 +48,13 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="154.0" date="2026-04-04">
+      <description>
+        <ul>
+          <li>Исправлена ​​ошибка парсинга подписок VLESS для URI без параметров запроса</li>
+        </ul>
+      </description>
+    </release>
     <release version="153.0" date="2026-04-02">
       <description>
         <ul>
