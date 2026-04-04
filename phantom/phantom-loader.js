@@ -29,7 +29,6 @@
     ];
 
     const extraModules = [
-        "chrome://phantom/content/ai/ai-sidebar.js",
         "chrome://phantom/content/smart-history/history-hook.js",
         "chrome://phantom/content/quick-actions/quick-actions.js",
     ];

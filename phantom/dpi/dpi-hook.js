@@ -21,6 +21,9 @@
     const { phantomDPIProxy } = ChromeUtils.importESModule(
         "resource://phantom/dpi/dpi-proxy.sys.mjs"
     );
+    const { rknSync } = ChromeUtils.importESModule(
+        "resource://phantom/rkn/rkn-sync.sys.mjs"
+    );
 
     let proxyFilterRegistered = false;
     let proxyFilter = null;
@@ -604,6 +607,12 @@
         }
 
         await phantomDPI.init();
+
+        // Уведомлять о каждом обновлении RKN (раз в час или при старте)
+        rknSync.onUpdate(() => {
+            showToast(`РКН: список обновлён — ${rknSync.domainCount.toLocaleString()} доменов`);
+            if (panelVisible) renderPanel();
+        });
 
         // Check if Proxy Manager has an active proxy → use as external chain
         let externalProxy = null;

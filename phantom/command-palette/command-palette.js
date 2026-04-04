@@ -25,7 +25,6 @@
         { type: "action", title: "Reload Page", icon: "R", run: () => window.gBrowser.reloadTab(window.gBrowser.selectedTab) },
         { type: "action", title: "Toggle Reader Mode", icon: "R", run: () => window.PhantomReader?.toggle() },
         { type: "action", title: "Toggle Split View", icon: "S", run: () => window.PhantomSplitView?.toggle() },
-        { type: "action", title: "AI Sidebar", icon: "A", run: () => window.PhantomAI?.toggleSidebar() },
         { type: "action", title: "Screenshot", icon: "S", run: () => window.PhantomQuickActions?.screenshotArea() },
         { type: "action", title: "QR Code", icon: "Q", run: () => window.PhantomQuickActions?.generateQR() },
         { type: "action", title: "Tab Timer", icon: "T", run: () => window.PhantomQuickActions?.setTabTimer() },

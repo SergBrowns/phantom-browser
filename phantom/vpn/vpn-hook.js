@@ -380,18 +380,10 @@
             // Russian site → traffic goes DIRECT, VPN idle
             btn.setAttribute("data-state", "standby");
             btn.setAttribute("tooltiptext", `VPN: ${host} → DIRECT (RU)`);
-        } else if (window.PhantomDPI?.isIpBlocked(host)) {
-            // IP-blocked → traffic goes through VPN
-            btn.setAttribute("data-state", "routing");
-            btn.setAttribute("tooltiptext", `VPN: ${host} → SOCKS5 (IP-block)`);
-        } else if (window.PhantomDPI?.isBlocked(host)) {
-            // SNI-blocked → traffic goes through DPI, not VPN
-            btn.setAttribute("data-state", "standby");
-            btn.setAttribute("tooltiptext", `VPN: ${host} → DPI bypass`);
         } else {
-            // Normal site → DIRECT
+            // All non-Russian traffic → VPN
             btn.setAttribute("data-state", "active");
-            btn.setAttribute("tooltiptext", `VPN: ${host} → DIRECT`);
+            btn.setAttribute("tooltiptext", `VPN: ${host} → VPN`);
         }
     }
 
@@ -559,20 +551,16 @@
                         return;
                     }
 
-                    // 2. VPN running → route all non-Russian traffic through VPN
-                    //    Exception: SNI-blocked domains already handled by DPI proxy — don't override
+                    // 2. VPN running → route ALL non-Russian traffic through VPN
+                    //    VPN tunnel is encrypted — no need for DPI bypass, sing-box handles everything
                     if (phantomVPN.running) {
-                        const isDpiHandled = window.PhantomDPI?.isBlocked(host) &&
-                            !window.PhantomDPI?.isIpBlocked(host);
-                        if (!isDpiHandled) {
-                            const proxyInfo = pps.newProxyInfo(
-                                "socks", "127.0.0.1", phantomVPN.socksPort,
-                                "", "", Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
-                                4294967295, null
-                            );
-                            callback.onProxyFilterResult(proxyInfo);
-                            return;
-                        }
+                        const proxyInfo = pps.newProxyInfo(
+                            "socks", "127.0.0.1", phantomVPN.socksPort,
+                            "", "", Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
+                            4294967295, null
+                        );
+                        callback.onProxyFilterResult(proxyInfo);
+                        return;
                     }
 
                     // 3. Otherwise — keep DPI filter's decision (defaultProxyInfo)

@@ -9,7 +9,10 @@
  *   - Strategy rotation: автоподбор стратегии при отказах
  *   - Bypass-all mode: весь трафик через DPI proxy
  *   - Расширенные ISP-паттерны
+ *   - RKN sync: автоматическое обновление списка из реестра РКН
  */
+
+import { rknSync } from "resource://phantom/rkn/rkn-sync.sys.mjs";
 
 // Window-free fetch using XPCOM XMLHttpRequest (works in sys.mjs context)
 function xhrFetch(url, { method = "GET", headers = {}, body = null, timeout = 15000, responseType = "text" } = {}) {
@@ -205,6 +208,7 @@ export class DPIEngine {
     #blockedDomains = new Set();
     #builtinDomains = new Set();
     #remoteDomains = new Set();
+    #rknDomains = new Set();          // домены из реестра РКН
     #userDomains = new Set();
     #userExceptions = new Set();
     #autoDetected = new Set();
@@ -236,6 +240,16 @@ export class DPIEngine {
         }
 
         await this.#loadCache();
+
+        // Инициализируем RKN Sync и загружаем текущие данные
+        await rknSync.init();
+        this.#loadRknDomains();
+        rknSync.onUpdate(() => {
+            this.#loadRknDomains();
+            this.#rebuildMasterList();
+            console.log(`[DPI] RKN list updated: ${this.#rknDomains.size} domains added`);
+        });
+
         this.#rebuildMasterList();
         this.#applyDohSettings();
         this.#applyEchSettings();
@@ -251,10 +265,17 @@ export class DPIEngine {
         this.#applyQuicSettings();
 
         this.#initialized = true;
-        console.log(`[DPI] Engine v2 initialized: ${this.#blockedDomains.size} domains, strategy=${this.#defaultStrategy}, bypassAll=${this.#bypassAll}`);
+        console.log(`[DPI] Engine v2 initialized: ${this.#blockedDomains.size} domains (${this.#rknDomains.size} RKN), strategy=${this.#defaultStrategy}, bypassAll=${this.#bypassAll}`);
 
         this.#scheduleListUpdate();
         this.updateRemoteLists().catch(e => console.warn("[DPI] Initial list update failed:", e.message));
+    }
+
+    #loadRknDomains() {
+        this.#rknDomains.clear();
+        for (const d of rknSync.getDomains()) {
+            this.#rknDomains.add(d);
+        }
     }
 
     get enabled() { return this.#enabled; }
@@ -272,9 +293,11 @@ export class DPIEngine {
             totalDomains: this.#blockedDomains.size,
             builtinCount: this.#builtinDomains.size,
             remoteCount: this.#remoteDomains.size,
+            rknCount: this.#rknDomains.size,
             userCount: this.#userDomains.size,
             exceptionsCount: this.#userExceptions.size,
             autoDetectedCount: this.#autoDetected.size,
+            rknLastUpdated: rknSync.lastUpdated,
         };
     }
 
@@ -755,6 +778,7 @@ export class DPIEngine {
         this.#blockedDomains.clear();
         for (const d of this.#builtinDomains) this.#blockedDomains.add(d);
         for (const d of this.#remoteDomains) this.#blockedDomains.add(d);
+        for (const d of this.#rknDomains) this.#blockedDomains.add(d);
         for (const d of this.#userDomains) this.#blockedDomains.add(d);
         for (const d of this.#autoDetected) this.#blockedDomains.add(d);
         this.#stats.totalDomains = this.#blockedDomains.size;
