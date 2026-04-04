@@ -48,6 +48,13 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="155.0" date="2026-04-04">
+      <description>
+        <ul>
+          <li>Fix DNS in sing-box: use DoH by IP instead of UDP bootstrap</li>
+        </ul>
+      </description>
+    </release>
     <release version="154.1" date="2026-04-04">
       <description>
         <ul>
