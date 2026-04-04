@@ -48,6 +48,14 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="155.2" date="2026-04-04">
+      <description>
+        <ul>
+          <li>Fix VPN: all non-Russian traffic is now routed through VPN when connected</li>
+          <li>Исправление VPN: весь не-российский трафик теперь маршрутизируется через VPN при подключении</li>
+        </ul>
+      </description>
+    </release>
     <release version="155.1" date="2026-04-04">
       <description>
         <ul>
