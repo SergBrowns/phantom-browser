@@ -11,7 +11,10 @@
  *   - Server latency testing
  *   - Auto-reconnect on failure
  *   - Config generation from parsed VLESS+REALITY URIs
+ *   - RKN split-tunnel: только заблокированные домены/IP идут через VPN
  */
+
+import { rknSync } from "resource://phantom/rkn/rkn-sync.sys.mjs";
 
 // Lazy-load Subprocess — path varies across Firefox versions
 let _Subprocess = null;
@@ -60,6 +63,7 @@ const SOCKS_PORT = 10808;
 const HTTP_PORT = 10809;
 const CONFIG_FILE = "phantom-vpn-singbox.json";
 const CACHE_FILE = "phantom-vpn.json";
+const RKN_RULESET_FILE = "phantom-vpn-rkn-ruleset.json";
 const SUBSCRIPTION_INTERVAL = 3 * 60 * 60 * 1000; // 3 hours
 const HEALTH_CHECK_INTERVAL = 60 * 1000;           // 1 min
 const TEST_URL = "https://cp.cloudflare.com/";
@@ -73,13 +77,13 @@ const TEST_TIMEOUT = 10000;
  */
 function parseVlessUri(uri) {
     try {
-        const match = uri.match(/^vless:\/\/([^@]+)@([^:]+):(\d+)\?(.+?)(?:#(.*))?$/);
+        const match = uri.match(/^vless:\/\/([^@]+)@([^:]+):(\d+)(?:\?(.+?))?(?:#(.*))?$/);
         if (!match) return null;
 
         const uuid = match[1];
         const server = match[2];
         const port = parseInt(match[3], 10);
-        const paramsStr = match[4];
+        const paramsStr = match[4] || "";
         const name = match[5] ? decodeURIComponent(match[5]).trim() : `${server}:${port}`;
 
         const params = {};
@@ -132,7 +136,43 @@ function detectCountry(server) {
 
 // ── sing-box config generator ──────────────────────────────────────────────
 
-function generateSingBoxConfig(server) {
+/**
+ * Генерирует конфиг sing-box.
+ *
+ * splitTunnel=false (по умолчанию):
+ *   Весь трафик через VPN (final: "proxy").
+ *
+ * splitTunnel=true:
+ *   Только заблокированные по РКН домены/IP идут через VPN,
+ *   остальное — напрямую (final: "direct").
+ *   RKN-правила берутся из rknSync (домены) и rulesetPath (IP CIDR + domain_suffix).
+ */
+function generateSingBoxConfig(server, { splitTunnel = false, rknDomains = [], rknIPs = [] } = {}) {
+    const routeRules = [
+        { action: "sniff" },
+        { protocol: "dns", action: "hijack-dns" },
+        { ip_is_private: true, outbound: "direct" },
+    ];
+
+    if (splitTunnel && (rknDomains.length > 0 || rknIPs.length > 0)) {
+        // Домены РКН → через VPN (чанками по 1000 — ограничение sing-box)
+        const CHUNK = 1000;
+        for (let i = 0; i < rknDomains.length; i += CHUNK) {
+            routeRules.push({
+                domain_suffix: rknDomains.slice(i, i + CHUNK),
+                outbound: "proxy",
+            });
+        }
+        // IP-блокировки РКН → через VPN (чанками по 500)
+        const IP_CHUNK = 500;
+        for (let i = 0; i < rknIPs.length; i += IP_CHUNK) {
+            routeRules.push({
+                ip_cidr: rknIPs.slice(i, i + IP_CHUNK),
+                outbound: "proxy",
+            });
+        }
+    }
+
     const config = {
         log: { level: "warn", timestamp: true },
         dns: {
@@ -165,12 +205,8 @@ function generateSingBoxConfig(server) {
         route: {
             auto_detect_interface: true,
             default_domain_resolver: "doh",
-            rules: [
-                { action: "sniff" },
-                { protocol: "dns", action: "hijack-dns" },
-                { ip_is_private: true, outbound: "direct" },
-            ],
-            final: "proxy",
+            rules: routeRules,
+            final: splitTunnel ? "direct" : "proxy",
         },
     };
 
@@ -252,9 +288,11 @@ export class VPNEngine {
     #configPath = "";
     #reconnecting = false;
     #lastError = "";
+    #splitTunnel = false;   // true → только RKN-домены через VPN, остальное — direct
 
     async init() {
         this.#configPath = PathUtils.join(PathUtils.profileDir, CONFIG_FILE);
+        this.#splitTunnel = Services.prefs.getBoolPref("phantom.vpn.splitTunnel", false);
 
         // Find sing-box binary
         this.#singboxPath = await this.#findSingBox();
@@ -264,6 +302,10 @@ export class VPNEngine {
         }
 
         await this.#loadCache();
+
+        // Инициализируем RKN Sync (если DPI уже его инициализировал — повторный вызов игнорируется)
+        await rknSync.init();
+
         this.#initialized = true;
 
         // Schedule subscription updates
@@ -274,7 +316,7 @@ export class VPNEngine {
             Ci.nsITimer.TYPE_REPEATING_SLACK
         );
 
-        console.log(`[VPN] Initialized: ${this.#servers.length} servers, sing-box=${this.#singboxPath || 'NOT FOUND'}`);
+        console.log(`[VPN] Initialized: ${this.#servers.length} servers, sing-box=${this.#singboxPath || 'NOT FOUND'}, splitTunnel=${this.#splitTunnel}, RKN=${rknSync.domainCount} domains`);
     }
 
     // ── Getters ────────────────────────────────────────────────
@@ -286,6 +328,19 @@ export class VPNEngine {
     get lastError() { return this.#lastError; }
     get socksPort() { return SOCKS_PORT; }
     get httpPort() { return HTTP_PORT; }
+    get splitTunnel() { return this.#splitTunnel; }
+    get rknDomainCount() { return rknSync.domainCount; }
+    get rknLastUpdated() { return rknSync.lastUpdated; }
+
+    setSplitTunnel(val) {
+        this.#splitTunnel = !!val;
+        Services.prefs.setBoolPref("phantom.vpn.splitTunnel", this.#splitTunnel);
+        console.log(`[VPN] Split tunnel: ${this.#splitTunnel ? 'ON (RKN only)' : 'OFF (all traffic)'}`);
+    }
+
+    async syncRkn() {
+        return rknSync.sync();
+    }
 
     get activeServer() {
         if (!this.#activeServerId) return null;
@@ -299,6 +354,9 @@ export class VPNEngine {
             ...this.#stats,
             uptime: this.#connectedSince > 0 ? Date.now() - this.#connectedSince : 0,
             serverCount: this.#servers.length,
+            rknDomains: rknSync.domainCount,
+            rknIPs: rknSync.ipCount,
+            rknLastUpdated: rknSync.lastUpdated,
         };
     }
 
@@ -499,8 +557,14 @@ export class VPNEngine {
         this.#activeServerId = server.id;
         this.#lastError = "";
 
-        // Generate config
-        const config = generateSingBoxConfig(server);
+        // Generate config — в split-tunnel режиме передаём RKN списки
+        const rknDomains = this.#splitTunnel ? [...rknSync.getDomains()] : [];
+        const rknIPs     = this.#splitTunnel ? [...rknSync.getIPs()]     : [];
+        const config = generateSingBoxConfig(server, {
+            splitTunnel: this.#splitTunnel,
+            rknDomains,
+            rknIPs,
+        });
         const configJson = JSON.stringify(config, null, 2);
 
         try {
