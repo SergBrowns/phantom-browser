@@ -1,5 +1,8 @@
 # Build artifacts
-pkg/
+pkg/*.tar.xz
+pkg/*.pkg.tar.zst
+pkg/src/
+pkg/.aur-git/
 repo/
 flatpak/build-dir/
 flatpak/phantom-*.tar.xz
@@ -7,6 +10,10 @@ flatpak/.flatpak-builder/
 
 # Flatpak OSTree repo (отдельный git-репо, пушится независимо)
 repo-flatpak/
+
+# Release infrastructure (private)
+publish.sh
+flatpak/build-flatpak.sh
 
 # OS / editor
 .DS_Store
