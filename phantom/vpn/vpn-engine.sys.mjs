@@ -177,8 +177,9 @@ function generateSingBoxConfig(server, { splitTunnel = false, rknDomains = [], r
         log: { level: "warn", timestamp: true },
         dns: {
             servers: [
-                // Используем IP напрямую — без UDP bootstrap (UDP :53 может быть заблокирован)
-                { tag: "doh", type: "https", server: "94.140.14.14", server_port: 443, path: "/dns-query" },
+                // Системный резолвер как bootstrap — не зависит от UDP :53 к внешним серверам
+                { tag: "bootstrap-dns", type: "local" },
+                { tag: "doh", type: "https", server: "dns.adguard-dns.com", server_port: 443, domain_resolver: "bootstrap-dns" },
                 { tag: "direct-dns", type: "local" },
             ],
             strategy: "prefer_ipv4",
