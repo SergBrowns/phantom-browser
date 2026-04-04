@@ -48,6 +48,14 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="154.1" date="2026-04-04">
+      <description>
+        <ul>
+          <li>En: Fix VPN subscription auth: use machine-id as HWID</li>
+          <li>Ru: Исправлена ​​ошибка аутентификации подписки на VPN: используйте machine-id в качестве HWID</li>
+        </ul>
+      </description>
+    </release>
     <release version="154.0" date="2026-04-04">
       <description>
         <ul>
