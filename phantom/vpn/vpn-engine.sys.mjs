@@ -385,23 +385,36 @@ export class VPNEngine {
         if (!this.#subscriptionUrl) return { ok: false, error: "No subscription URL" };
 
         try {
-            // Generate stable UUID-format HWID from profile path
+            // Generate stable UUID-format HWID from machine-id (аппаратный ID устройства)
             if (!this.#subscriptionHwid) {
-                const raw = PathUtils.profileDir;
-                // Deterministic 128-bit hash → UUID v4 format
-                let h1 = 0x9e3779b9, h2 = 0x6c62272e, h3 = 0x14c9f7e5, h4 = 0xf39cc0ad;
-                for (let i = 0; i < raw.length; i++) {
-                    const c = raw.charCodeAt(i);
-                    h1 = Math.imul(h1 ^ c, 0x9e3779b9) >>> 0;
-                    h2 = Math.imul(h2 ^ c, 0x85ebca77) >>> 0;
-                    h3 = Math.imul(h3 ^ c, 0xc2b2ae3d) >>> 0;
-                    h4 = Math.imul(h4 ^ c, 0x27d4eb2f) >>> 0;
+                let raw = "";
+                // /etc/machine-id — стандартный ID машины на Linux (используется systemd, D-Bus)
+                for (const path of ["/etc/machine-id", "/var/lib/dbus/machine-id"]) {
+                    try {
+                        const text = await IOUtils.readUTF8(path);
+                        raw = text.trim().replace(/[^a-f0-9]/gi, "");
+                        if (raw.length >= 32) break;
+                    } catch {}
                 }
-                const hex = n => n.toString(16).padStart(8, "0");
-                // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-                const a = hex(h1), b = hex(h2), c = hex(h3), d = hex(h4);
-                this.#subscriptionHwid = `${a}-${b.slice(0,4)}-4${b.slice(5,8)}-${((parseInt(c[0],16)&3)|8).toString(16)}${c.slice(1,4)}-${c.slice(4)}${d}`;
-                this.#saveCacheAsync(); // save immediately so HWID stays stable across restarts
+                if (raw.length >= 32) {
+                    // machine-id уже является 32-символьным hex — форматируем как UUID v4
+                    const m = raw.slice(0, 32);
+                    this.#subscriptionHwid = `${m.slice(0,8)}-${m.slice(8,12)}-4${m.slice(13,16)}-${((parseInt(m[16],16)&3)|8).toString(16)}${m.slice(17,20)}-${m.slice(20,32)}`;
+                } else {
+                    // Fallback: хэш пути профиля
+                    raw = PathUtils.profileDir;
+                    let h1 = 0x9e3779b9, h2 = 0x6c62272e, h3 = 0x14c9f7e5, h4 = 0xf39cc0ad;
+                    for (let i = 0; i < raw.length; i++) {
+                        const c = raw.charCodeAt(i);
+                        h1 = Math.imul(h1 ^ c, 0x9e3779b9) >>> 0;
+                        h2 = Math.imul(h2 ^ c, 0x85ebca77) >>> 0;
+                        h3 = Math.imul(h3 ^ c, 0xc2b2ae3d) >>> 0;
+                        h4 = Math.imul(h4 ^ c, 0x27d4eb2f) >>> 0;
+                    }
+                    const hex = n => n.toString(16).padStart(8, "0");
+                    const a = hex(h1), b = hex(h2), c_s = hex(h3), d = hex(h4);
+                    this.#subscriptionHwid = `${a}-${b.slice(0,4)}-4${b.slice(5,8)}-${((parseInt(c_s[0],16)&3)|8).toString(16)}${c_s.slice(1,4)}-${c_s.slice(4)}${d}`;
+                }
             }
 
             // Try with Hiddify UA first, fall back to plain UA if only dummy servers returned
@@ -849,7 +862,7 @@ export class VPNEngine {
             if (Array.isArray(data.servers)) this.#servers = data.servers;
             this.#activeServerId = data.activeServerId || null;
             this.#subscriptionUrl = data.subscriptionUrl || "";
-            this.#subscriptionHwid = data.hwid || "";
+            // hwid не загружаем из кэша — всегда читаем из /etc/machine-id
             if (data.stats) Object.assign(this.#stats, data.stats);
         } catch {}
     }
@@ -861,7 +874,6 @@ export class VPNEngine {
                 servers: this.#servers,
                 activeServerId: this.#activeServerId,
                 subscriptionUrl: this.#subscriptionUrl,
-                hwid: this.#subscriptionHwid,
                 stats: this.#stats,
                 updated: Date.now(),
             });
