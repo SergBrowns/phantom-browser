@@ -31,6 +31,7 @@
     const extraModules = [
         "chrome://phantom/content/smart-history/history-hook.js",
         "chrome://phantom/content/quick-actions/quick-actions.js",
+        "chrome://phantom/content/profile-importer/profile-importer-hook.js",
     ];
 
     // Диагностика доступна глобально: window.PhantomDiagnostics.save()

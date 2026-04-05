@@ -407,5 +407,11 @@
         }
     }, true);
 
-    window.PhantomCommandPalette = { open: openPalette, close: closePalette, toggle: togglePalette };
+    function registerAction(action) {
+        if (!ACTIONS.find(a => a.title === action.title)) {
+            ACTIONS.push(action);
+        }
+    }
+
+    window.PhantomCommandPalette = { open: openPalette, close: closePalette, toggle: togglePalette, registerAction };
 })();
