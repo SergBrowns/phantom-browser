@@ -48,6 +48,26 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="155.4" date="2026-04-05">
+      <description>
+        <ul>
+          <li>Add VPN kill switch — blocks all traffic if VPN drops unexpectedly</li>
+          <li>DPI auto-detection now silently routes IP-blocked domains via VPN</li>
+          <li>Add Smart History search panel (Ctrl+Shift+H) with full-text search</li>
+          <li>Fix bilingual release notes and metainfo.xml support</li>
+          <li>Fix SQLite shutdown crash on browser exit</li>
+          <li>Suppress console output in terminal launcher</li>
+        </ul>
+        <ul xml:lang="ru">
+          <li>Добавлен Kill Switch VPN — блокирует весь трафик при внезапном падении VPN</li>
+          <li>DPI автоматически маршрутизирует IP-заблокированные домены через VPN без диалога</li>
+          <li>Добавлена панель поиска по истории (Ctrl+Shift+H) с полнотекстовым поиском</li>
+          <li>Исправлено двуязычное оформление релизов и metainfo.xml</li>
+          <li>Исправлен краш SQLite при закрытии браузера</li>
+          <li>Убран вывод в терминал при запуске</li>
+        </ul>
+      </description>
+    </release>
     <release version="155.3" date="2026-04-05">
       <description>
         <ul>
