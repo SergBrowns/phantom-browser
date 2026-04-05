@@ -51,6 +51,16 @@
     <release version="155.4" date="2026-04-05">
       <description>
         <ul>
+          <li>Fix console output suppression for native AUR package</li>
+        </ul>
+        <ul xml:lang="ru">
+          <li>Исправлено подавление вывода в терминал для нативной AUR-установки</li>
+        </ul>
+      </description>
+    </release>
+    <release version="155.4" date="2026-04-05">
+      <description>
+        <ul>
           <li>Add VPN kill switch — blocks all traffic if VPN drops unexpectedly</li>
           <li>DPI auto-detection now silently routes IP-blocked domains via VPN</li>
           <li>Add Smart History search panel (Ctrl+Shift+H) with full-text search</li>
