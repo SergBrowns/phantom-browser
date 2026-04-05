@@ -83,6 +83,20 @@
           <li>Add profile importer module</li>
           <li>Extend command palette with registerAction API</li>
         </ul>
+        <ul xml:lang="ru">
+          <li>Редизайн новой вкладки с анимированным фоном aurora и часами</li>
+          <li>Добавлен модуль импорта профилей</li>
+          <li>Расширена командная палитра через registerAction API</li>
+        </ul>
+      </description>
+    </release>
+    <release version="155.3" date="2026-04-05">
+      <description>
+        <ul>
+          <li>Redesign new tab page with animated aurora background and serif clock</li>
+          <li>Add profile importer module</li>
+          <li>Extend command palette with registerAction API</li>
+        </ul>
       </description>
     </release>
     <release version="155.2" date="2026-04-04">
