@@ -48,6 +48,20 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="155.5" date="2026-04-06">
+      <description>
+        <ul>
+          <li>Fix new tab page not applying aurora design</li>
+          <li>Rewrite Firefox profile importer with direct SQLite access</li>
+          <li>Profile importer now has progress UI with profile selection</li>
+        </ul>
+        <ul xml:lang="ru">
+          <li>Исправлена кастомная новая вкладка с aurora-фоном и serif-часами</li>
+          <li>Переписан импортёр профилей Firefox — прямое чтение SQLite, работает при запущенном Firefox</li>
+          <li>Импортёр теперь показывает прогресс и позволяет выбрать профиль и тип данных</li>
+        </ul>
+      </description>
+    </release>
     <release version="155.4" date="2026-04-05">
       <description>
         <ul>
