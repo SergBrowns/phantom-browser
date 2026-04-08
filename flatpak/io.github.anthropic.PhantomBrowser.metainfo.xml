@@ -48,6 +48,22 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="155.6" date="2026-04-08">
+      <description>
+        <ul>
+          <li>Fix new tab page not loading</li>
+          <li>Profile importer: full panel with profile picker and progress</li>
+          <li>Smart history search panel (Ctrl+Shift+H)</li>
+          <li>VPN kill switch — block traffic if VPN drops</li>
+        </ul>
+        <ul xml:lang="ru">
+          <li>Исправлен новый таб (не открывался после установки через AUR)</li>
+          <li>Импорт из Firefox: полная панель с выбором профиля и прогрессом</li>
+          <li>Поиск по истории (Ctrl+Shift+H)</li>
+          <li>Kill Switch VPN — блокировка трафика при падении соединения</li>
+        </ul>
+      </description>
+    </release>
     <release version="155.5" date="2026-04-06">
       <description>
         <ul>
