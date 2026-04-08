@@ -52,6 +52,16 @@
       <description>
         <ul>
           <li>Fix new tab page not loading</li>
+        </ul>
+        <ul xml:lang="ru">
+          <li>Исправлен новый таб (не открывался после установки через AUR)</li>
+        </ul>
+      </description>
+    </release>
+    <release version="155.6" date="2026-04-08">
+      <description>
+        <ul>
+          <li>Fix new tab page not loading</li>
           <li>Profile importer: full panel with profile picker and progress</li>
           <li>Smart history search panel (Ctrl+Shift+H)</li>
           <li>VPN kill switch — block traffic if VPN drops</li>
