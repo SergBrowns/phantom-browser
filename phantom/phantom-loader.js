@@ -56,9 +56,30 @@
         });
     }
 
+    // Set new tab URL after chrome package is registered
+    function setNewTabUrl() {
+        const url = "chrome://phantom/content/new-tab/new-tab.html";
+        try {
+            // Firefox 127+ module-based API
+            const { AboutNewTab } = ChromeUtils.importESModule(
+                "resource:///modules/AboutNewTab.sys.mjs"
+            );
+            if (AboutNewTab.newTabURL !== url) AboutNewTab.newTabURL = url;
+            return;
+        } catch {}
+        try {
+            // Fallback: XPCOM service
+            const svc = Cc["@mozilla.org/browser/aboutnewtab-service;1"]
+                .getService(Ci.nsIAboutNewTabService);
+            if (svc.newTabURL !== url) svc.newTabURL = url;
+        } catch {}
+    }
+
     async function init() {
         console.log("[Phantom] Loading modules...");
         const start = performance.now();
+
+        setNewTabUrl();
 
         window._phantomLoading = true;
 

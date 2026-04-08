@@ -269,6 +269,19 @@
                         <button class="vpn-btn" id="vpn-manual-add">Add</button>
                     </div>
                 </div>
+
+                <div class="vpn-section">
+                    <div class="vpn-section-title">Kill Switch</div>
+                    ${phantomVPN.killSwitchActive ? `
+                    <div class="vpn-error" style="margin-bottom:8px;">⚠️ Kill Switch активен — трафик заблокирован. Подключитесь к VPN или выключите Kill Switch.</div>` : ''}
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 0;">
+                        <input type="checkbox" id="vpn-killswitch" ${phantomVPN.killSwitch ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:#4ade80;" />
+                        <div>
+                            <div style="font-size:12px;color:#e2e8f0;font-weight:500;">Блокировать трафик при падении VPN</div>
+                            <div style="font-size:11px;color:#64748b;margin-top:2px;">Защита от утечек если соединение оборвётся</div>
+                        </div>
+                    </label>
+                </div>
             </div>
 
             <div class="vpn-footer">
@@ -339,6 +352,12 @@
             renderPanel();
         });
 
+        // Kill switch toggle
+        panel.querySelector("#vpn-killswitch")?.addEventListener("change", (e) => {
+            phantomVPN.setKillSwitch(e.target.checked);
+            if (!e.target.checked) { updateButtonState(); renderPanel(); }
+        });
+
         // Manual add
         panel.querySelector("#vpn-manual-add")?.addEventListener("click", () => {
             const input = panel.querySelector("#vpn-manual-uri");
@@ -362,10 +381,15 @@
         if (!btn) return;
 
         if (!phantomVPN.running) {
-            btn.setAttribute("data-state", phantomVPN.lastError ? "error" : "disconnected");
-            btn.setAttribute("tooltiptext", phantomVPN.lastError
-                ? `VPN: ${phantomVPN.lastError}`
-                : "VPN отключён (Ctrl+Shift+U)");
+            if (phantomVPN.killSwitchActive) {
+                btn.setAttribute("data-state", "error");
+                btn.setAttribute("tooltiptext", "Kill Switch активен — трафик заблокирован (Ctrl+Shift+U)");
+            } else {
+                btn.setAttribute("data-state", phantomVPN.lastError ? "error" : "disconnected");
+                btn.setAttribute("tooltiptext", phantomVPN.lastError
+                    ? `VPN: ${phantomVPN.lastError}`
+                    : "VPN отключён (Ctrl+Shift+U)");
+            }
             return;
         }
 
@@ -470,19 +494,10 @@
         return CDN_PATTERNS.some(p => p.test(host));
     }
 
-    // Ask user before adding a domain to the IP-block list
-    function promptIpBlockDetected(host) {
-        const result = Services.prompt.confirmEx(
-            window,
-            "Обнаружена IP-блокировка",
-            `${host} не открывается через DPI-обход.\nДобавить в список IP-блокировки и маршрутизировать через VPN?`,
-            Services.prompt.STD_YES_NO_BUTTONS,
-            null, null, null, null, { value: false }
-        );
-        if (result === 0) { // Yes
-            window.PhantomDPI?.markIpBlocked(host);
-            showToast(`${host} → VPN`);
-        }
+    // Auto-add IP-blocked domain silently (no dialog) and route via VPN
+    function autoMarkIpBlocked(host) {
+        window.PhantomDPI?.markIpBlocked(host);
+        showToast(`${host} → VPN (IP-блокировка)`);
     }
 
     // Track connection failures for auto IP-block detection
@@ -508,7 +523,7 @@
             const dpiEngine = window.PhantomDPI;
             if (dpiEngine && !dpiEngine.isIpBlocked(host)) {
                 failureTracker.delete(host);
-                promptIpBlockDetected(host);
+                autoMarkIpBlocked(host);
             }
         }
     }
@@ -545,13 +560,25 @@
                         return;
                     }
 
-                    // 1. Russian domains → DIRECT always
+                    // 1. Kill switch: VPN dropped unexpectedly → block all traffic
+                    if (phantomVPN.killSwitchActive) {
+                        // Route to port 1 — always refused, effectively blocks the request
+                        const blockProxy = pps.newProxyInfo(
+                            "socks", "127.0.0.1", 1,
+                            "", "", Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
+                            4294967295, null
+                        );
+                        callback.onProxyFilterResult(blockProxy);
+                        return;
+                    }
+
+                    // 2. Russian domains → DIRECT always
                     if (isRussianDomain(host)) {
                         callback.onProxyFilterResult(null);
                         return;
                     }
 
-                    // 2. VPN running → route ALL non-Russian traffic through VPN
+                    // 3. VPN running → route ALL non-Russian traffic through VPN
                     //    VPN tunnel is encrypted — no need for DPI bypass, sing-box handles everything
                     if (phantomVPN.running) {
                         const proxyInfo = pps.newProxyInfo(
@@ -563,7 +590,7 @@
                         return;
                     }
 
-                    // 3. Otherwise — keep DPI filter's decision (defaultProxyInfo)
+                    // 4. Otherwise — keep DPI filter's decision (defaultProxyInfo)
                     callback.onProxyFilterResult(defaultProxyInfo);
                 } catch {
                     callback.onProxyFilterResult(defaultProxyInfo);
@@ -574,6 +601,15 @@
         // Priority 10 — runs after DPI filter (priority 0)
         pps.registerChannelFilter(vpnProxyFilter, 10);
         console.log("[VPN] Smart proxy filter registered (priority 10)");
+
+        // Kill switch observer — notify user when VPN drops and traffic is blocked
+        Services.obs.addObserver({
+            observe() {
+                updateButtonState();
+                showToast("⚠️ VPN упал — Kill Switch активирован. Трафик заблокирован.");
+                if (panelVisible) renderPanel();
+            }
+        }, "phantom-vpn-killswitch-activated");
     }
 
     /**

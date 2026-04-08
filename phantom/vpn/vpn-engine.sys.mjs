@@ -290,10 +290,13 @@ export class VPNEngine {
     #reconnecting = false;
     #lastError = "";
     #splitTunnel = false;   // true → только RKN-домены через VPN, остальное — direct
+    #killSwitch = false;    // true → блокировать трафик при падении VPN
+    #killSwitchActive = false; // true → VPN упал, трафик заблокирован
 
     async init() {
         this.#configPath = PathUtils.join(PathUtils.profileDir, CONFIG_FILE);
         this.#splitTunnel = Services.prefs.getBoolPref("phantom.vpn.splitTunnel", false);
+        this.#killSwitch = Services.prefs.getBoolPref("phantom.vpn.killSwitch", false);
 
         // Find sing-box binary
         this.#singboxPath = await this.#findSingBox();
@@ -332,6 +335,16 @@ export class VPNEngine {
     get splitTunnel() { return this.#splitTunnel; }
     get rknDomainCount() { return rknSync.domainCount; }
     get rknLastUpdated() { return rknSync.lastUpdated; }
+
+    get killSwitch() { return this.#killSwitch; }
+    get killSwitchActive() { return this.#killSwitchActive; }
+
+    setKillSwitch(val) {
+        this.#killSwitch = !!val;
+        if (!val) this.#killSwitchActive = false;
+        Services.prefs.setBoolPref("phantom.vpn.killSwitch", this.#killSwitch);
+        console.log(`[VPN] Kill switch: ${this.#killSwitch ? 'ON' : 'OFF'}`);
+    }
 
     setSplitTunnel(val) {
         this.#splitTunnel = !!val;
@@ -638,6 +651,7 @@ export class VPNEngine {
     }
 
     async disconnect() {
+        this.#killSwitchActive = false; // Manual disconnect always clears kill switch block
         this.#stopHealthCheck();
 
         // 1. Try graceful shutdown of our tracked process
@@ -708,13 +722,17 @@ export class VPNEngine {
         if (!this.#running) return;
 
         try {
-            // Test connection through our SOCKS proxy
             const ok = await this.testConnectivity();
             if (!ok && !this.#reconnecting) {
                 console.warn("[VPN] Health check failed, attempting reconnect...");
                 this.#reconnecting = true;
                 await this.disconnect();
-                await this.connect(this.#activeServerId);
+                const reconnected = await this.connect(this.#activeServerId);
+                if (!reconnected && this.#killSwitch) {
+                    this.#killSwitchActive = true;
+                    console.warn("[VPN] Kill switch activated — all traffic blocked");
+                    try { Services.obs.notifyObservers(null, "phantom-vpn-killswitch-activated"); } catch {}
+                }
                 this.#reconnecting = false;
             }
         } catch {
@@ -863,6 +881,7 @@ export class VPNEngine {
             if (Array.isArray(data.servers)) this.#servers = data.servers;
             this.#activeServerId = data.activeServerId || null;
             this.#subscriptionUrl = data.subscriptionUrl || "";
+            this.#killSwitch = data.killSwitch ?? false;
             // hwid не загружаем из кэша — всегда читаем из /etc/machine-id
             if (data.stats) Object.assign(this.#stats, data.stats);
         } catch {}
@@ -875,6 +894,7 @@ export class VPNEngine {
                 servers: this.#servers,
                 activeServerId: this.#activeServerId,
                 subscriptionUrl: this.#subscriptionUrl,
+                killSwitch: this.#killSwitch,
                 stats: this.#stats,
                 updated: Date.now(),
             });
