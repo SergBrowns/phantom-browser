@@ -1,7 +1,8 @@
 --- a/browser/base/jar.mn
 +++ b/browser/base/jar.mn
-@@ -1,3 +1,6 @@
+@@ -1,3 +1,7 @@
 +# Phantom Browser
 +% content phantom %phantom/ contentaccessible=yes
 +% resource phantom %phantom/
++% overlay chrome://browser/content/browser.xhtml chrome://phantom/content/phantom-loader.js
  browser.jar:
