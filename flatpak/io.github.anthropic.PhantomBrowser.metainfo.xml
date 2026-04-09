@@ -48,6 +48,16 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="155.6.3" date="2026-04-09">
+      <description>
+        <ul>
+          <li>Fix phantom modules not loading on yay install</li>
+        </ul>
+        <ul xml:lang="ru">
+          <li>Исправлена загрузка модулей при установке через yay</li>
+        </ul>
+      </description>
+    </release>
     <release version="155.6.2" date="2026-04-09">
       <description>
         <ul>
