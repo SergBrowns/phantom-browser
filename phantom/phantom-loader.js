@@ -6,6 +6,11 @@
 "use strict";
 
 (function PhantomLoader() {
+    // Guard against double-execution: script tag in browser.xhtml (from build patch)
+    // AND overlay in chrome.manifest (from build-flatpak.sh) both load this file.
+    if (window._phantomLoaderRan) return;
+    window._phantomLoaderRan = true;
+
     // Modules grouped by dependency:
     // Group 1: UI — independent, load in parallel
     // Group 2: Network — proxy→dpi→vpn (ordered)
@@ -74,6 +79,11 @@
             if (svc.newTabURL !== url) svc.newTabURL = url;
         } catch {}
     }
+
+    // Set new tab URL immediately at script evaluation time — before window load,
+    // before Activity Stream can claim about:newtab. Also called in init() as a
+    // safety net in case the module wasn't ready yet on first call.
+    setNewTabUrl();
 
     async function init() {
         console.log("[Phantom] Loading modules...");
